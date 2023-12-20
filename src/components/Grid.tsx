@@ -108,6 +108,10 @@ const GridRowItem = ({
     onClickItem(rowId, idx);
   };
 
+  const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+  };
+
   return (
     <div className="grid-item">
       <div
@@ -116,7 +120,13 @@ const GridRowItem = ({
       ></div>
       {/* <small className="text-muted">{active ? 'Enabled' : 'Disabled'}</small> */}
 
-      <input type="number" disabled={!active} max={LedCount} min={1} />
+      <input
+        type="number"
+        disabled={!active}
+        max={LedCount}
+        min={1}
+        onChange={onChangeHandler}
+      />
     </div>
   );
 };
