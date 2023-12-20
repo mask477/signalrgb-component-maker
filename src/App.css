@@ -1,0 +1,19 @@
+.row-index {
+  margin-right: 10px;
+}
+
+.grid-item {
+  width: 20px;
+  aspect-ratio: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: gray;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+
+.grid-item.index {
+  background-color: transparent;
+}
