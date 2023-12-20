@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Form } from 'react-bootstrap';
+import { useComponent } from '../context/ComponentContext';
 
 type GridItemType = {
   led?: number;
   x: number;
   y: number;
-  selected: boolean;
+  active: boolean;
 };
 
 export default function Grid({
@@ -27,7 +29,7 @@ export default function Grid({
         const item: GridItemType = {
           x,
           y,
-          selected: false,
+          active: false,
         };
         row.push(item);
       }
@@ -36,14 +38,25 @@ export default function Grid({
     }
   }, [width, height]);
 
+  const onClickItem = (x: number, y: number) => {
+    console.log({ x, y });
+
+    const updatedGrid = [...grid];
+    updatedGrid[x][y].active = !updatedGrid[x][y].active;
+
+    setGrid(updatedGrid);
+  };
+
   return (
     <div className="card">
       <div className="card-body">
         <h4>Draw here:</h4>
         {grid.map((items, idx) => (
-          <div className="d-flex justify-content-center mb-1">
-            <div className="grid-item index">{idx + 1}</div>
-            <GridRow key={`row-${idx}`} items={items} />
+          <div
+            key={`row-${idx}`}
+            className="d-flex justify-content-center mb-2"
+          >
+            <GridRow rowId={idx} items={items} onClickItem={onClickItem} />
           </div>
         ))}
       </div>
@@ -51,20 +64,59 @@ export default function Grid({
   );
 }
 
-const GridRow = ({ items }: { items: GridItemType[] }) => {
+const GridRow = ({
+  rowId,
+  items,
+  onClickItem,
+}: {
+  rowId: number;
+  items: GridItemType[];
+  onClickItem: Function;
+}) => {
   return (
-    <div className="d-flex justify-content-center align-items-center">
+    <div className="grid-row">
       {items.map((item, idx) => (
-        <GridRowItem key={`item-${idx}`} {...item} />
+        <GridRowItem
+          key={`item-${idx}`}
+          item={item}
+          rowId={rowId}
+          idx={idx}
+          onClickItem={onClickItem}
+        />
       ))}
     </div>
   );
 };
 
-const GridRowItem = ({ led, x, y, selected }: GridItemType) => {
+const GridRowItem = ({
+  item,
+  rowId,
+  idx,
+  onClickItem,
+}: {
+  item: GridItemType;
+  rowId: number;
+  idx: number;
+  onClickItem: Function;
+}) => {
+  const { component } = useComponent();
+  const { LedCount } = component;
+
+  const { x, y, active } = item;
+
+  const handelOnClick = () => {
+    onClickItem(rowId, idx);
+  };
+
   return (
-    <div>
-      <div className="grid-item"></div>
+    <div className="grid-item">
+      <div
+        className={`status ${active && 'active'}`}
+        onClick={handelOnClick}
+      ></div>
+      {/* <small className="text-muted">{active ? 'Enabled' : 'Disabled'}</small> */}
+
+      <input type="number" disabled={!active} max={LedCount} min={1} />
     </div>
   );
 };

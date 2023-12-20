@@ -7,6 +7,7 @@ export default function Field({
   placeholder,
   type = 'text',
   width = 'col-md-6',
+  value,
   onChange,
 }: {
   name: string;
@@ -14,6 +15,7 @@ export default function Field({
   placeholder: string;
   type?: string;
   width?: string;
+  value?: any;
   onChange: ChangeEventHandler;
 }) {
   return (
@@ -25,6 +27,7 @@ export default function Field({
           onChange={onChange}
           name={name}
           type={type ? type : 'text'}
+          value={value}
         />
       </Form.Group>
     </div>
