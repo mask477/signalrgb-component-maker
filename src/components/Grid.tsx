@@ -99,8 +99,8 @@ const GridRowItem = ({
   idx: number;
   onClickItem: Function;
 }) => {
-  const { component } = useComponent();
-  const { LedCount } = component;
+  const { component, setComponent } = useComponent();
+  const { LedCount, LedNames } = component;
 
   const { x, y, active } = item;
 
@@ -108,8 +108,20 @@ const GridRowItem = ({
     onClickItem(rowId, idx);
   };
 
-  const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const onChangeHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const LedCoordinates = component.LedCoordinates.map(
+      (coordinate: Array<number>, idx: number) => {
+        if (idx === parseInt(e.target.value)) {
+          return [x, y];
+        }
+
+        return coordinate;
+      }
+    );
+    setComponent({
+      ...component,
+      LedCoordinates,
+    });
   };
 
   return (
@@ -118,15 +130,15 @@ const GridRowItem = ({
         className={`status ${active && 'active'}`}
         onClick={handelOnClick}
       ></div>
-      {/* <small className="text-muted">{active ? 'Enabled' : 'Disabled'}</small> */}
 
-      <input
-        type="number"
-        disabled={!active}
-        max={LedCount}
-        min={1}
-        onChange={onChangeHandler}
-      />
+      <select disabled={!active} onChange={onChangeHandler} defaultValue={''}>
+        {!active && <option value="" hidden></option>}
+        {LedNames.map((led, idx) => (
+          <option key={idx} value={idx}>
+            {led}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };

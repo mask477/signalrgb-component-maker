@@ -98,6 +98,9 @@ export function ComponentContextProvider({
         { length: component.LedCount },
         (_, i) => `Led${i + 1}`
       ),
+      LedCoordinates: Array.from({ length: component.LedCount }, (_, i) => [
+        0, 0,
+      ]),
     });
   }, [component.LedCount]);
 
