@@ -45,9 +45,20 @@ type ComponentType = {
   LedNames: string[];
   Image: null;
 };
+
+export type GridItemType = {
+  led?: number;
+  x: number;
+  y: number;
+  active: boolean;
+};
+
 type ComponentContextType = {
   component: ComponentType;
   setComponent: Function;
+  grid: GridItemType[][];
+  setGrid: Function;
+  ledsUsed: number;
 };
 
 const ComponentContext = createContext<ComponentContextType>({
@@ -65,6 +76,9 @@ const ComponentContext = createContext<ComponentContextType>({
     Image: null,
   },
   setComponent: () => {},
+  grid: [],
+  setGrid: () => {},
+  ledsUsed: 0,
 });
 
 export function ComponentContextProvider({
@@ -86,6 +100,20 @@ export function ComponentContextProvider({
     Image: null,
   });
 
+  const [grid, setGrid] = useState<GridItemType[][]>([]);
+
+  const ledsUsed = useMemo(() => {
+    let leds = 0;
+    grid.map((row) => {
+      row.map((item) => {
+        if (item.active) {
+          leds++;
+        }
+      });
+    });
+    return leds;
+  }, [grid]);
+
   useEffect(() => {
     console.log('COMPONENT:', component);
   }, [component]);
@@ -104,10 +132,32 @@ export function ComponentContextProvider({
     });
   }, [component.LedCount]);
 
+  useEffect(() => {
+    const newGrid = [];
+    const { Width, Height } = component;
+
+    for (let y = 0; y < Height; y++) {
+      let row: GridItemType[] = [];
+      for (let x = 0; x < Width; x++) {
+        const item: GridItemType = {
+          x,
+          y,
+          active: false,
+        };
+        row.push(item);
+      }
+      newGrid.push(row);
+      setGrid(newGrid);
+    }
+  }, [component.Width, component.Height]);
+
   const context = useMemo(
     () => ({
       component,
       setComponent,
+      grid,
+      setGrid,
+      ledsUsed,
     }),
     [component]
   );

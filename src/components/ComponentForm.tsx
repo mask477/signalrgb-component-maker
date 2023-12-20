@@ -1,5 +1,5 @@
 import React, { ChangeEventHandler, useEffect, useMemo, useState } from 'react';
-import { Form, Row } from 'react-bootstrap';
+import { Button, Form, Row } from 'react-bootstrap';
 import { useComponent } from '../context/ComponentContext';
 import Field from './Field';
 import Grid from './Grid';
@@ -75,11 +75,12 @@ export default function ComponentForm() {
               <Field key={idx} {...field} onChange={onChangeHandler} />
             ))}
           </div>
-          <Grid
-            leds={component.LedCount}
-            width={component.Width}
-            height={component.Height}
-          />
+          <Grid />
+          <div className="d-grid">
+            <Button size="lg" type="submit">
+              Generate
+            </Button>
+          </div>
         </Form>
       </div>
     </div>
