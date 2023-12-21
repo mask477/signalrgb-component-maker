@@ -1,39 +1,42 @@
+import { useState } from 'react';
 import { GridItemType, useComponent } from '../context/ComponentContext';
 
-export default function GridRowItem({
-  item,
-  rowId,
-  idx,
-  onClickItem,
-}: {
-  item: GridItemType;
-  rowId: number;
-  idx: number;
-  onClickItem: Function;
-}) {
-  const { component, setComponent } = useComponent();
-  const { LedCount, LedNames } = component;
-
-  const { x, y, active } = item;
+export default function GridRowItem({ item }: { item: GridItemType }) {
+  const { led, x, y, active } = item;
+  const { component, grid, setGrid, LedsUsed } = useComponent();
+  const { LedNames, LedCount } = component;
 
   const handelOnClick = () => {
-    onClickItem(rowId, idx);
+    let newGrid = [...grid];
+    let newGridRow = [...grid[y]];
+    let newGridItem = { ...grid[y][x - 1] };
+
+    if (LedsUsed < LedCount || newGridItem.active) {
+      newGridItem.active = !newGridItem.active;
+      if (!newGridItem.active) {
+        newGridItem.led = -1;
+      }
+
+      newGridRow[x - 1] = newGridItem;
+      newGrid[y] = newGridRow;
+
+      setGrid(newGrid);
+    }
   };
 
   const onChangeHandler = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const LedCoordinates = component.LedCoordinates.map(
-      (coordinate: Array<number>, idx: number) => {
-        if (idx === parseInt(e.target.value)) {
-          return [x, y];
-        }
+    e.preventDefault();
 
-        return coordinate;
-      }
-    );
-    setComponent({
-      ...component,
-      LedCoordinates,
-    });
+    let newGrid = [...grid];
+    let newGridRow = [...grid[y]];
+    let newGridItem = { ...grid[y][x - 1] };
+
+    newGridItem.led = parseInt(e.target.value);
+
+    newGridRow[x - 1] = newGridItem;
+    newGrid[y] = newGridRow;
+
+    setGrid(newGrid);
   };
 
   return (
@@ -43,11 +46,15 @@ export default function GridRowItem({
         onClick={handelOnClick}
       ></div>
 
-      <select disabled={!active} onChange={onChangeHandler} defaultValue={''}>
-        {!active && <option value="" hidden></option>}
-        {LedNames.map((led, idx) => (
-          <option key={idx} value={idx}>
-            {led}
+      <select
+        disabled={!active}
+        onChange={onChangeHandler}
+        value={led === null ? 'null' : led}
+      >
+        <option value="-1"></option>
+        {LedNames.map((name, idx) => (
+          <option key={`name-${idx}`} value={`${idx}`}>
+            {name}
           </option>
         ))}
       </select>

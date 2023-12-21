@@ -2,6 +2,7 @@
 import React, {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -47,7 +48,7 @@ type ComponentType = {
 };
 
 export type GridItemType = {
-  led?: number;
+  led: number;
   x: number;
   y: number;
   active: boolean;
@@ -58,7 +59,7 @@ type ComponentContextType = {
   setComponent: Function;
   grid: GridItemType[][];
   setGrid: Function;
-  ledsUsed: number;
+  LedsUsed: number;
 };
 
 const ComponentContext = createContext<ComponentContextType>({
@@ -78,7 +79,7 @@ const ComponentContext = createContext<ComponentContextType>({
   setComponent: () => {},
   grid: [],
   setGrid: () => {},
-  ledsUsed: 0,
+  LedsUsed: 0,
 });
 
 export function ComponentContextProvider({
@@ -103,6 +104,7 @@ export function ComponentContextProvider({
   const [grid, setGrid] = useState<GridItemType[][]>([
     [
       {
+        led: -1,
         x: 1,
         y: 0,
         active: false,
@@ -110,7 +112,7 @@ export function ComponentContextProvider({
     ],
   ]);
 
-  const ledsUsed = useMemo(() => {
+  const LedsUsed = useMemo(() => {
     let leds = 0;
     grid.map((row) => {
       row.map((item) => {
@@ -120,6 +122,18 @@ export function ComponentContextProvider({
       });
     });
     return leds;
+  }, [grid]);
+
+  useEffect(() => {
+    const flatGrid = grid
+      .flat()
+      .filter((a) => a.led !== -1)
+      .sort((a, b) => a.led - b.led);
+
+    setComponent({
+      ...component,
+      LedCoordinates: flatGrid.map((item) => [item.x, item.y]),
+    });
   }, [grid]);
 
   useEffect(() => {
@@ -146,18 +160,19 @@ export function ComponentContextProvider({
     } else if (Height > grid.length) {
       newGrid = [
         ...newGrid,
-        ...Array.from({ length: Height - grid.length }, (_, y) => []),
+        ...Array.from({ length: Height - grid.length }, () => []),
       ];
     }
 
-    for (let y = 0; y < newGrid.length; y++) {
+    for (let y = 0; y < Height; y++) {
       if (Width < newGrid[y].length) {
         newGrid[y] = newGrid[y].slice(0, Width);
       } else if (Width > newGrid[y].length) {
         newGrid[y] = [
           ...newGrid[y],
           ...Array.from({ length: Width - newGrid[y].length }, (_, x) => ({
-            x: x + 1,
+            led: -1,
+            x: newGrid[y].length + x + 1,
             y,
             active: false,
           })),
@@ -166,6 +181,7 @@ export function ComponentContextProvider({
     }
 
     setGrid(newGrid);
+    console.log('GRID:', newGrid);
   }, [component.Width, component.Height]);
 
   const context = useMemo(
@@ -174,7 +190,7 @@ export function ComponentContextProvider({
       setComponent,
       grid,
       setGrid,
-      ledsUsed,
+      LedsUsed,
     }),
     [grid, component]
   );

@@ -1,4 +1,11 @@
-import React, { ChangeEventHandler, useEffect, useMemo, useState } from 'react';
+import React, {
+  ChangeEventHandler,
+  SyntheticEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Button, Form, Row } from 'react-bootstrap';
 import { useComponent } from '../context/ComponentContext';
 import Field from './Field';
@@ -16,7 +23,7 @@ type FormFieldType = {
 export default function ComponentForm() {
   const { component, setComponent } = useComponent();
 
-  const formFields = [
+  const formFields: FormFieldType[] = [
     {
       name: 'ProductName',
       label: 'Product Name',
@@ -69,13 +76,10 @@ export default function ComponentForm() {
   ];
 
   const onChangeHandler = (e: any) => {
-    console.log('onChangeHandler');
-
     const { target } = e;
     let { name, value } = target;
 
     const field = formFields.find((field) => field.name === name);
-    console.log('FIELD:', field);
 
     if (field && field.type === 'number') {
       value = parseInt(value);
@@ -84,10 +88,16 @@ export default function ComponentForm() {
     setComponent({ ...component, [name]: value });
   };
 
+  const onSubmitHandler = (e: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
+    e.preventDefault();
+
+    console.log(JSON.stringify(component, null, 1));
+  };
+
   return (
     <div className="card">
       <div className="card-body">
-        <Form>
+        <Form onSubmit={onSubmitHandler}>
           <div className="row">
             {formFields.map((field, idx) => (
               <Field key={idx} {...field} onChange={onChangeHandler} />
