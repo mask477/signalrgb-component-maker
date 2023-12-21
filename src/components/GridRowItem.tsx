@@ -50,8 +50,10 @@ export default function GridRowItem({ item }: { item: GridItemType }) {
         disabled={!active}
         onChange={onChangeHandler}
         value={led === null ? 'null' : led}
+        name={`coordinate[]`}
+        required={active}
       >
-        <option value="-1"></option>
+        <option value=""></option>
         {LedNames.map((name, idx) => (
           <option key={`name-${idx}`} value={`${idx}`}>
             {name}

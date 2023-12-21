@@ -1,4 +1,5 @@
 import React, {
+  ChangeEvent,
   ChangeEventHandler,
   SyntheticEvent,
   useEffect,
@@ -22,6 +23,21 @@ type FormFieldType = {
 
 export default function ComponentForm() {
   const { component, setComponent } = useComponent();
+  const [selectedFile, setSelectedFile] = useState<any>();
+  const [preview, setPreview] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreview(undefined);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreview(objectUrl);
+
+    // free memory when ever this component is unmounted
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
 
   const formFields: FormFieldType[] = [
     {
@@ -94,6 +110,16 @@ export default function ComponentForm() {
     console.log(JSON.stringify(component, null, 1));
   };
 
+  const onSelectFile = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      setSelectedFile(undefined);
+      return;
+    }
+
+    // I've kept this example simple by using the first image instead of multiple
+    setSelectedFile(e.target.files[0]);
+  };
+
   return (
     <div className="card">
       <div className="card-body">
@@ -102,6 +128,21 @@ export default function ComponentForm() {
             {formFields.map((field, idx) => (
               <Field key={idx} {...field} onChange={onChangeHandler} />
             ))}
+          </div>
+          <div className="row">
+            <h4>Component Image:</h4>
+            <div className="col-12 d-flex flex-column justify-content-center align-items-center">
+              <div className="image-container mb-4">
+                {selectedFile ? (
+                  <img src={preview} />
+                ) : (
+                  <small>Choose an Image</small>
+                )}
+              </div>
+              <Form.Group controlId="formFileLg" className="mb-3">
+                <Form.Control type="file" onChange={onSelectFile} size="lg" />
+              </Form.Group>
+            </div>
           </div>
           <Grid />
           <div className="d-grid">

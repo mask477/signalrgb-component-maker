@@ -28,6 +28,7 @@ export default function Field({
           name={name}
           type={type ? type : 'text'}
           value={value}
+          required
         />
       </Form.Group>
     </div>
