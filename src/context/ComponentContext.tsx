@@ -100,7 +100,15 @@ export function ComponentContextProvider({
     Image: null,
   });
 
-  const [grid, setGrid] = useState<GridItemType[][]>([]);
+  const [grid, setGrid] = useState<GridItemType[][]>([
+    [
+      {
+        x: 1,
+        y: 0,
+        active: false,
+      },
+    ],
+  ]);
 
   const ledsUsed = useMemo(() => {
     let leds = 0;
@@ -113,10 +121,6 @@ export function ComponentContextProvider({
     });
     return leds;
   }, [grid]);
-
-  useEffect(() => {
-    console.log('COMPONENT:', component);
-  }, [component]);
 
   useEffect(() => {
     setComponent({
@@ -133,22 +137,35 @@ export function ComponentContextProvider({
   }, [component.LedCount]);
 
   useEffect(() => {
-    const newGrid = [];
     const { Width, Height } = component;
 
-    for (let y = 0; y < Height; y++) {
-      let row: GridItemType[] = [];
-      for (let x = 0; x < Width; x++) {
-        const item: GridItemType = {
-          x,
-          y,
-          active: false,
-        };
-        row.push(item);
-      }
-      newGrid.push(row);
-      setGrid(newGrid);
+    let newGrid = [...grid];
+
+    if (Height < grid.length) {
+      newGrid = newGrid.slice(0, Height);
+    } else if (Height > grid.length) {
+      newGrid = [
+        ...newGrid,
+        ...Array.from({ length: Height - grid.length }, (_, y) => []),
+      ];
     }
+
+    for (let y = 0; y < newGrid.length; y++) {
+      if (Width < newGrid[y].length) {
+        newGrid[y] = newGrid[y].slice(0, Width);
+      } else if (Width > newGrid[y].length) {
+        newGrid[y] = [
+          ...newGrid[y],
+          ...Array.from({ length: Width - newGrid[y].length }, (_, x) => ({
+            x: x + 1,
+            y,
+            active: false,
+          })),
+        ];
+      }
+    }
+
+    setGrid(newGrid);
   }, [component.Width, component.Height]);
 
   const context = useMemo(
@@ -159,7 +176,7 @@ export function ComponentContextProvider({
       setGrid,
       ledsUsed,
     }),
-    [component]
+    [grid, component]
   );
 
   return (

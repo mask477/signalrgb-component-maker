@@ -13,6 +13,10 @@ export default function Grid() {
     setGrid(updatedGrid);
   };
 
+  useEffect(() => {
+    console.log('GRID:', grid);
+  }, [grid]);
+
   return (
     <div className="card mb-3">
       <div className="card-body">

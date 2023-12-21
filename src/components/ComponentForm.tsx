@@ -4,6 +4,15 @@ import { useComponent } from '../context/ComponentContext';
 import Field from './Field';
 import Grid from './Grid';
 
+type FormFieldType = {
+  name: string;
+  label: string;
+  placeholder: string;
+  value: any;
+  type?: string;
+  width?: string;
+};
+
 export default function ComponentForm() {
   const { component, setComponent } = useComponent();
 
@@ -60,8 +69,17 @@ export default function ComponentForm() {
   ];
 
   const onChangeHandler = (e: any) => {
+    console.log('onChangeHandler');
+
     const { target } = e;
-    const { name, value } = target;
+    let { name, value } = target;
+
+    const field = formFields.find((field) => field.name === name);
+    console.log('FIELD:', field);
+
+    if (field && field.type === 'number') {
+      value = parseInt(value);
+    }
 
     setComponent({ ...component, [name]: value });
   };
