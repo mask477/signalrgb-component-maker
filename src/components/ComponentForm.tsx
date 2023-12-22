@@ -1,4 +1,4 @@
-import React, { SyntheticEvent } from 'react';
+import React, { SyntheticEvent, useRef } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { useComponent } from '../context/ComponentContext';
 import Field from './Field';
@@ -16,6 +16,7 @@ type FormFieldType = {
 
 export default function ComponentForm() {
   const { component, setComponent } = useComponent();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const formFields: FormFieldType[] = [
     {
@@ -85,13 +86,21 @@ export default function ComponentForm() {
   const onSubmitHandler = (e: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     e.preventDefault();
 
-    console.log(JSON.stringify(component, null, 1));
+    console.log();
+    const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
+      JSON.stringify(component, null, 1)
+    )}`;
+    const link = document.createElement('a');
+    link.href = jsonString;
+    link.download = `${component.DisplayName}.json`;
+
+    link.click();
   };
 
   return (
     <div className="card">
       <div className="card-body">
-        <Form onSubmit={onSubmitHandler}>
+        <Form onSubmit={onSubmitHandler} ref={formRef}>
           <div className="row">
             {formFields.map((field, idx) => (
               <Field key={idx} {...field} onChange={onChangeHandler} />
@@ -100,9 +109,7 @@ export default function ComponentForm() {
           <Grid />
           <ImageUpload />
           <div className="d-grid">
-            <Button size="lg" type="submit">
-              Generate
-            </Button>
+            <Button type="submit">Lesss Go!!!</Button>
           </div>
         </Form>
       </div>

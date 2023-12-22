@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, {
   ReactNode,
   createContext,
@@ -8,30 +7,6 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-
-/**
- * 
- * {
-    "ProductName": "Product’s actual name",
-    "DisplayName": "The name SignalRGB displays for the product",
-    "Brand": "Put the device brand here.",
-    "Type": "Tells SignalRGB what type of device this is. (Fan, AIO, etc.)",
-    "LedCount": Insert number of LEDS here.,
-    "Width": Width on SignalRGB’s canvas,
-    "Height": Height on SignalRGB’s Canvas,
-    "LedMapping": [
-        0,1
-    ],
-    "LedCoordinates": [
-        [1,2],[2,1]
-    ],
-    "LedNames": [
-        "Led1",
-        "Led2",
-    ],
-    "Image": "The image of the device goes here. The image needs encoded into base 64.""
-  }
- */
 
 type ComponentType = {
   ProductName: string;
@@ -54,6 +29,11 @@ export type GridItemType = {
   active: boolean;
 };
 
+type FocusedInputType = {
+  x: number;
+  y: number;
+};
+
 type ComponentContextType = {
   component: ComponentType;
   setComponent: Function;
@@ -61,6 +41,8 @@ type ComponentContextType = {
   grid: GridItemType[][];
   setGrid: Function;
   mapLed: Function;
+  focusedInput: FocusedInputType;
+  setFocusedInput: Function;
   LedsUsed: number;
 };
 
@@ -87,11 +69,17 @@ const ComponentContext = createContext<ComponentContextType>({
         x: 1,
         y: 0,
         active: false,
+        // ref: null,
       },
     ],
   ],
   setGrid: () => {},
   mapLed: () => {},
+  focusedInput: {
+    x: -1,
+    y: -1,
+  },
+  setFocusedInput: () => {},
   LedsUsed: 0,
 });
 
@@ -120,9 +108,14 @@ export function ComponentContextProvider({
         x: 1,
         y: 0,
         active: false,
+        // ref: null,
       },
     ],
   ]);
+  const [focusedInput, setFocusedInput] = useState<FocusedInputType>({
+    x: -1,
+    y: -1,
+  });
 
   useEffect(() => {
     const newComponent = {
@@ -156,6 +149,7 @@ export function ComponentContextProvider({
     );
 
     setGrid(newGrid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [component.LedCount]);
 
   useEffect(() => {
@@ -183,25 +177,26 @@ export function ComponentContextProvider({
             x: newGrid[y].length + x + 1,
             y,
             active: false,
+            // ref: null,
           })),
         ];
       }
     }
 
     setGrid(newGrid);
-    console.log('GRID:', newGrid);
-    console.log('COMPONENT:', component);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [component.Width, component.Height]);
 
   const LedsUsed = useMemo(() => {
     let leds = 0;
-    grid.map((row) => {
+    grid.map((row) =>
       row.map((item) => {
         if (item.active) {
           leds++;
         }
-      });
-    });
+        return null;
+      })
+    );
     return leds;
   }, [grid]);
 
@@ -215,6 +210,7 @@ export function ComponentContextProvider({
       ...component,
       LedCoordinates: flatGrid.map((item) => [item.x, item.y]),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
 
   const mapLed = useCallback(
@@ -258,9 +254,11 @@ export function ComponentContextProvider({
       grid,
       setGrid,
       mapLed,
+      focusedInput,
+      setFocusedInput,
       LedsUsed,
     }),
-    [grid, component]
+    [component, setImage, grid, mapLed, focusedInput, LedsUsed]
   );
 
   return (

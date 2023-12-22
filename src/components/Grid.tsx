@@ -14,7 +14,51 @@ export default function Grid() {
           <Alert variant="light">
             <ul>
               <li>
-                <b>Usage:</b> Enter the led number in the box.
+                <b>Usage:</b>
+                <ul>
+                  <li>Use arrow keys to navigate</li>
+                  <li>
+                    Enter the led number in the circle to map an led on the
+                    desired coordinate.
+                  </li>
+                  <li>
+                    <span
+                      style={{
+                        background: 'gray',
+                        color: 'black',
+                        paddingInline: 3,
+                      }}
+                    >
+                      Gray
+                    </span>
+                    : No led has been mapped.
+                  </li>
+                  <li>
+                    <span
+                      style={{
+                        background: 'yellowgreen',
+                        color: 'black',
+                        paddingInline: 3,
+                      }}
+                    >
+                      Green
+                    </span>
+                    : The mapping is correct and the desired input led wil be
+                    mapped to that coordinate.
+                  </li>
+                  <li>
+                    <span
+                      style={{
+                        background: 'red',
+                        color: 'black',
+                        paddingInline: 3,
+                      }}
+                    >
+                      Red
+                    </span>
+                    : There are redundent led number mapping.
+                  </li>
+                </ul>
               </li>
               <li>
                 <b>LEDs used:</b> {LedsUsed}
