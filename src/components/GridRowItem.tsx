@@ -84,8 +84,6 @@ export default function GridRowItem({ item }: { item: GridItemType }) {
       .flat()
       .filter((a: GridItemType) => a.led === led && led !== -1);
 
-    console.log('FLAT GRID:', flatGrid);
-
     return flatGrid.length > 1;
   }, [grid]);
 

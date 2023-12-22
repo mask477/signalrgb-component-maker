@@ -2,6 +2,7 @@
   "name": "signal-rgb-component-creater",
   "version": "0.1.0",
   "private": true,
+  "homepage": "/signalRGB-component-maker",
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
