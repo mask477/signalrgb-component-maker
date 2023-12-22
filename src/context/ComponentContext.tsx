@@ -44,7 +44,7 @@ type ComponentType = {
   LedMapping: number[];
   LedCoordinates: any;
   LedNames: string[];
-  Image: null;
+  Image: string;
 };
 
 export type GridItemType = {
@@ -57,8 +57,10 @@ export type GridItemType = {
 type ComponentContextType = {
   component: ComponentType;
   setComponent: Function;
+  setImage: Function;
   grid: GridItemType[][];
   setGrid: Function;
+  mapLed: Function;
   LedsUsed: number;
 };
 
@@ -74,11 +76,22 @@ const ComponentContext = createContext<ComponentContextType>({
     LedMapping: [0],
     LedCoordinates: [],
     LedNames: [],
-    Image: null,
+    Image: '',
   },
   setComponent: () => {},
-  grid: [],
+  setImage: () => {},
+  grid: [
+    [
+      {
+        led: -1,
+        x: 1,
+        y: 0,
+        active: false,
+      },
+    ],
+  ],
   setGrid: () => {},
+  mapLed: () => {},
   LedsUsed: 0,
 });
 
@@ -98,9 +111,8 @@ export function ComponentContextProvider({
     LedMapping: [0],
     LedCoordinates: [],
     LedNames: [],
-    Image: null,
+    Image: '',
   });
-
   const [grid, setGrid] = useState<GridItemType[][]>([
     [
       {
@@ -112,32 +124,8 @@ export function ComponentContextProvider({
     ],
   ]);
 
-  const LedsUsed = useMemo(() => {
-    let leds = 0;
-    grid.map((row) => {
-      row.map((item) => {
-        if (item.active) {
-          leds++;
-        }
-      });
-    });
-    return leds;
-  }, [grid]);
-
   useEffect(() => {
-    const flatGrid = grid
-      .flat()
-      .filter((a) => a.led !== -1)
-      .sort((a, b) => a.led - b.led);
-
-    setComponent({
-      ...component,
-      LedCoordinates: flatGrid.map((item) => [item.x, item.y]),
-    });
-  }, [grid]);
-
-  useEffect(() => {
-    setComponent({
+    const newComponent = {
       ...component,
       LedMapping: Array.from({ length: component.LedCount }, (_, i) => i),
       LedNames: Array.from(
@@ -147,7 +135,27 @@ export function ComponentContextProvider({
       LedCoordinates: Array.from({ length: component.LedCount }, (_, i) => [
         0, 0,
       ]),
-    });
+    };
+    const { LedMapping } = newComponent;
+
+    setComponent(newComponent);
+
+    const newGrid = grid.map((row: GridItemType[]) =>
+      row.map((item: GridItemType) => {
+        const newItem = { ...item };
+        const { led }: { led: number } = newItem;
+
+        if (LedMapping.includes(led)) {
+          newItem.active = true;
+        } else {
+          newItem.active = false;
+        }
+
+        return newItem;
+      })
+    );
+
+    setGrid(newGrid);
   }, [component.LedCount]);
 
   useEffect(() => {
@@ -182,14 +190,74 @@ export function ComponentContextProvider({
 
     setGrid(newGrid);
     console.log('GRID:', newGrid);
+    console.log('COMPONENT:', component);
   }, [component.Width, component.Height]);
+
+  const LedsUsed = useMemo(() => {
+    let leds = 0;
+    grid.map((row) => {
+      row.map((item) => {
+        if (item.active) {
+          leds++;
+        }
+      });
+    });
+    return leds;
+  }, [grid]);
+
+  useEffect(() => {
+    const flatGrid = grid
+      .flat()
+      .filter((a: GridItemType) => a.active)
+      .sort((a: GridItemType, b: GridItemType) => a.led - b.led);
+
+    setComponent({
+      ...component,
+      LedCoordinates: flatGrid.map((item) => [item.x, item.y]),
+    });
+  }, [grid]);
+
+  const mapLed = useCallback(
+    (x: number, y: number, led: number) => {
+      const { LedMapping } = component;
+
+      let newGrid = [...grid];
+      let newGridRow = [...grid[y]];
+      let newGridItem = { ...grid[y][x - 1] };
+
+      newGridItem.led = led;
+      if (LedMapping.includes(led)) {
+        newGridItem.active = true;
+      } else {
+        newGridItem.active = false;
+      }
+
+      newGridRow[x - 1] = newGridItem;
+      newGrid[y] = newGridRow;
+
+      setGrid(newGrid);
+    },
+    [grid]
+  );
+
+  const setImage = useCallback(
+    (image: string) => {
+      setComponent({
+        ...component,
+        Image: image,
+      });
+    },
+    [component]
+  );
 
   const context = useMemo(
     () => ({
       component,
       setComponent,
+      setImage,
       grid,
       setGrid,
+      mapLed,
       LedsUsed,
     }),
     [grid, component]
