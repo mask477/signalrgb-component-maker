@@ -2,7 +2,7 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useRef } from 'react';
 import { GridItemType, useComponent } from '../context/ComponentContext';
 
 export default function GridRowItem({ item }: { item: GridItemType }) {
-  const { led, x, y, active } = item;
+  const { led, x, y } = item;
   const { component, grid, mapLed, focusedInput, setFocusedInput } =
     useComponent();
   const { Width, Height, LedCount } = component;
@@ -68,7 +68,7 @@ export default function GridRowItem({ item }: { item: GridItemType }) {
     [y, Height, x, Width, setFocusedInput, focusedInput]
   );
 
-  const onChangeActiveHandler = (e: ChangeEvent<HTMLInputElement>) => {
+  const onChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const { target } = e;
 
     const value = parseInt(target.value) - 1;
@@ -79,23 +79,24 @@ export default function GridRowItem({ item }: { item: GridItemType }) {
     setFocusedInput({ x, y });
   };
 
-  const hasError = useMemo(() => {
-    const flatGrid = grid
-      .flat()
-      .filter((a: GridItemType) => a.led === led && led !== -1);
+  // const hasError = useMemo(() => {
+  //   const flatGrid = grid.flat().filter((a: GridItemType) => a.led !== -1);
 
-    return flatGrid.length > 1;
-  }, [grid]);
+  //   return flatGrid.length > LedCount;
+  // }, [LedCount, grid, led]);
+
+  const hasError = led + 1 > LedCount;
 
   return (
     <div className="grid-item">
       <input
         type="number"
-        className={hasError ? 'error' : active ? 'active' : ''}
-        onChange={onChangeActiveHandler}
+        className={hasError ? 'error' : led !== -1 ? 'active' : ''}
+        onChange={onChangeHandler}
         onKeyDown={onKeyDownHandler}
         min={0}
         max={LedCount}
+        value={led + 1}
         placeholder={`${led + 1}`}
         ref={ref}
         onFocus={onFocusHandler}

@@ -1,10 +1,20 @@
 import React, { useEffect } from 'react';
-import { Alert, ListGroup } from 'react-bootstrap';
+import { Alert, Button, ListGroup } from 'react-bootstrap';
 import { useComponent } from '../context/ComponentContext';
 import GridRowItem from './GridRowItem';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+import { faCircle, faSquare } from '@fortawesome/free-regular-svg-icons';
+import {
+  faArrowRotateLeft,
+  faArrowRotateRight,
+  faEraser,
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function Grid() {
-  const { grid, LedsUsed } = useComponent();
+  const { grid, LedsUsed, mapShape } = useComponent();
+
+  const onClickShapeHandler = (shape: string) => mapShape(shape);
 
   return (
     <>
@@ -65,15 +75,39 @@ export default function Grid() {
               </li>
             </ul>
           </Alert>
+          <div className="row justify-content-center">
+            <div className="grid">
+              {grid.map((items, idx) => (
+                <div className="grid-row" key={`row-${idx}`}>
+                  {items.map((item, itemIdx) => (
+                    <GridRowItem key={`item-${itemIdx}`} item={item} />
+                  ))}
+                </div>
+              ))}
+            </div>
 
-          <div className="grid">
-            {grid.map((items, idx) => (
-              <div className="grid-row" key={`row-${idx}`}>
-                {items.map((item, itemIdx) => (
-                  <GridRowItem key={`item-${itemIdx}`} item={item} />
-                ))}
+            <div className="shape-controls">
+              <div>
+                <Button onClick={() => onClickShapeHandler('circle')}>
+                  <FontAwesomeIcon icon={faCircle} />
+                </Button>
+                <Button onClick={() => onClickShapeHandler('square')}>
+                  <FontAwesomeIcon icon={faSquare} />
+                </Button>
+                <Button onClick={() => onClickShapeHandler('clear')}>
+                  <FontAwesomeIcon icon={faEraser} />
+                </Button>
               </div>
-            ))}
+
+              <div>
+                <Button onClick={() => onClickShapeHandler('clockwise')}>
+                  <FontAwesomeIcon icon={faArrowRotateLeft} />
+                </Button>
+                <Button onClick={() => onClickShapeHandler('anti-clockwise')}>
+                  <FontAwesomeIcon icon={faArrowRotateRight} />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

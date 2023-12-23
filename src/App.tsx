@@ -1,10 +1,11 @@
 import React from 'react';
 
+import { ComponentContextProvider } from './context/ComponentContext';
+
 import ComponentForm from './components/ComponentForm';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
-import { ComponentContextProvider } from './context/ComponentContext';
 
 function App() {
   return (

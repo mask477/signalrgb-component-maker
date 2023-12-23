@@ -26,7 +26,6 @@ export type GridItemType = {
   led: number;
   x: number;
   y: number;
-  active: boolean;
 };
 
 type FocusedInputType = {
@@ -37,13 +36,14 @@ type FocusedInputType = {
 type ComponentContextType = {
   component: ComponentType;
   setComponent: Function;
-  setImage: Function;
+  LedsUsed: number;
   grid: GridItemType[][];
   setGrid: Function;
   mapLed: Function;
   focusedInput: FocusedInputType;
   setFocusedInput: Function;
-  LedsUsed: number;
+  mapShape: Function;
+  setImage: Function;
 };
 
 const ComponentContext = createContext<ComponentContextType>({
@@ -61,15 +61,13 @@ const ComponentContext = createContext<ComponentContextType>({
     Image: '',
   },
   setComponent: () => {},
-  setImage: () => {},
+  LedsUsed: 0,
   grid: [
     [
       {
         led: -1,
         x: 1,
         y: 0,
-        active: false,
-        // ref: null,
       },
     ],
   ],
@@ -80,7 +78,8 @@ const ComponentContext = createContext<ComponentContextType>({
     y: -1,
   },
   setFocusedInput: () => {},
-  LedsUsed: 0,
+  mapShape: () => {},
+  setImage: () => {},
 });
 
 export function ComponentContextProvider({
@@ -107,8 +106,6 @@ export function ComponentContextProvider({
         led: -1,
         x: 1,
         y: 0,
-        active: false,
-        // ref: null,
       },
     ],
   ]);
@@ -129,26 +126,8 @@ export function ComponentContextProvider({
         0, 0,
       ]),
     };
-    const { LedMapping } = newComponent;
 
     setComponent(newComponent);
-
-    const newGrid = grid.map((row: GridItemType[]) =>
-      row.map((item: GridItemType) => {
-        const newItem = { ...item };
-        const { led }: { led: number } = newItem;
-
-        if (LedMapping.includes(led)) {
-          newItem.active = true;
-        } else {
-          newItem.active = false;
-        }
-
-        return newItem;
-      })
-    );
-
-    setGrid(newGrid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [component.LedCount]);
 
@@ -176,8 +155,6 @@ export function ComponentContextProvider({
             led: -1,
             x: newGrid[y].length + x + 1,
             y,
-            active: false,
-            // ref: null,
           })),
         ];
       }
@@ -191,7 +168,7 @@ export function ComponentContextProvider({
     let leds = 0;
     grid.map((row) =>
       row.map((item) => {
-        if (item.active) {
+        if (item.led !== -1) {
           leds++;
         }
         return null;
@@ -203,7 +180,7 @@ export function ComponentContextProvider({
   useEffect(() => {
     const flatGrid = grid
       .flat()
-      .filter((a: GridItemType) => a.active)
+      .filter((a: GridItemType) => a.led !== -1)
       .sort((a: GridItemType, b: GridItemType) => a.led - b.led);
 
     setComponent({
@@ -215,25 +192,151 @@ export function ComponentContextProvider({
 
   const mapLed = useCallback(
     (x: number, y: number, led: number) => {
-      const { LedMapping } = component;
-
       let newGrid = [...grid];
       let newGridRow = [...grid[y]];
       let newGridItem = { ...grid[y][x - 1] };
 
       newGridItem.led = led;
-      if (LedMapping.includes(led)) {
-        newGridItem.active = true;
-      } else {
-        newGridItem.active = false;
-      }
 
       newGridRow[x - 1] = newGridItem;
       newGrid[y] = newGridRow;
 
       setGrid(newGrid);
+      const { LedCount } = component;
+
+      if (led + 1 > LedCount) {
+        setComponent({
+          ...component,
+          LedCount: led + 1,
+        });
+      }
     },
     [grid]
+  );
+
+  const mapSquareOnGrid = useCallback(() => {
+    const { Width, Height } = component;
+
+    let ledNumber = 0;
+    const newGrid = grid.map((row: GridItemType[], rowIndex: number) =>
+      row.map((item: GridItemType, itemIndex: number) => {
+        if (
+          rowIndex === 0 ||
+          rowIndex === Height - 1 ||
+          itemIndex === 0 ||
+          itemIndex === Width - 1
+        ) {
+          item.led = ledNumber;
+
+          ledNumber++;
+        }
+
+        return item;
+      })
+    );
+    setComponent({
+      ...component,
+      LedCount: ledNumber,
+    });
+
+    setGrid(newGrid);
+  }, [component, grid]);
+
+  const clearGrid = useCallback(() => {
+    setGrid(
+      grid.map((row) =>
+        row.map((item) => {
+          item.led = -1;
+          return item;
+        })
+      )
+    );
+  }, [grid]);
+
+  const shiftLedsClockWise = useCallback(() => {
+    const newGrid = grid
+      .flat()
+      .filter((a: GridItemType) => a.led !== -1)
+      .sort((a: GridItemType, b: GridItemType) => a.led - b.led);
+
+    const leds = newGrid.map((item) => item.led);
+    const firstLed = leds[0];
+
+    leds.shift();
+    leds.push(firstLed);
+
+    newGrid.map((item, index) => (item.led = leds[index]));
+
+    setGrid(
+      grid.map((row: GridItemType[]): GridItemType[] =>
+        row.map((item: GridItemType): GridItemType => {
+          const { x, y } = item;
+          const shiftedItem = newGrid.find(
+            (e: GridItemType) => e.x === x && e.y === y
+          );
+
+          if (shiftedItem) {
+            item.led = shiftedItem.led;
+          }
+
+          return item;
+        })
+      )
+    );
+  }, [grid]);
+
+  const shiftLedsAntiClockWise = useCallback(() => {
+    const newGrid: GridItemType[] = grid
+      .flat()
+      .filter((a: GridItemType) => a.led !== -1)
+      .sort((a: GridItemType, b: GridItemType) => a.led - b.led);
+
+    const leds = newGrid.map((item) => item.led);
+    const lastLed = leds[leds.length - 1];
+
+    leds.pop();
+    leds.unshift(lastLed);
+
+    newGrid.map((item, index) => (item.led = leds[index]));
+
+    setGrid(
+      grid.map((row: GridItemType[]): GridItemType[] =>
+        row.map((item: GridItemType): GridItemType => {
+          const { x, y } = item;
+          const shiftedItem = newGrid.find(
+            (e: GridItemType) => e.x === x && e.y === y
+          );
+
+          if (shiftedItem) {
+            item.led = shiftedItem.led;
+          }
+
+          return item;
+        })
+      )
+    );
+  }, [grid]);
+
+  const mapShape = useCallback(
+    (shape: string) => {
+      switch (shape) {
+        case 'circle':
+          break;
+        case 'square':
+          mapSquareOnGrid();
+          break;
+        case 'clear':
+          clearGrid();
+          break;
+        case 'clockwise':
+          shiftLedsClockWise();
+          break;
+        case 'anti-clockwise':
+          shiftLedsAntiClockWise();
+          break;
+      }
+    },
+    [clearGrid, mapSquareOnGrid, shiftLedsAntiClockWise, shiftLedsClockWise]
   );
 
   const setImage = useCallback(
@@ -250,13 +353,14 @@ export function ComponentContextProvider({
     () => ({
       component,
       setComponent,
-      setImage,
+      LedsUsed,
       grid,
       setGrid,
       mapLed,
       focusedInput,
       setFocusedInput,
-      LedsUsed,
+      mapShape,
+      setImage,
     }),
     [component, setImage, grid, mapLed, focusedInput, LedsUsed]
   );
