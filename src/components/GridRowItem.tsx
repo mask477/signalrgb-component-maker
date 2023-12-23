@@ -79,12 +79,6 @@ export default function GridRowItem({ item }: { item: GridItemType }) {
     setFocusedInput({ x, y });
   };
 
-  // const hasError = useMemo(() => {
-  //   const flatGrid = grid.flat().filter((a: GridItemType) => a.led !== -1);
-
-  //   return flatGrid.length > LedCount;
-  // }, [LedCount, grid, led]);
-
   const hasError = led + 1 > LedCount;
 
   return (

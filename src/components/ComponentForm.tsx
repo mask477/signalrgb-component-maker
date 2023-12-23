@@ -86,13 +86,21 @@ export default function ComponentForm() {
   const onSubmitHandler = (e: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     e.preventDefault();
 
-    console.log();
+    const json: any = {
+      ...component,
+      LedMapping: component.LedCoordinates.map((_: number[], i: number) => i),
+      LedNames: component.LedCoordinates.map(
+        (_: number[], i: number) => `Led${i}`
+      ),
+    };
+    console.log('json:', json);
+
     const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
-      JSON.stringify(component, null, 1)
+      JSON.stringify(json, null, 1)
     )}`;
     const link = document.createElement('a');
     link.href = jsonString;
-    link.download = `${component.DisplayName}.json`;
+    link.download = `${json.DisplayName}.json`;
 
     link.click();
   };

@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { distance, solveCircle } from '../utils/Functions';
 
 type ComponentType = {
   ProductName: string;
@@ -16,9 +17,9 @@ type ComponentType = {
   LedCount: number;
   Width: number;
   Height: number;
-  LedMapping: number[];
+  // LedMapping: number[];
   LedCoordinates: any;
-  LedNames: string[];
+  // LedNames: string[];
   Image: string;
 };
 
@@ -33,6 +34,12 @@ type FocusedInputType = {
   y: number;
 };
 
+export enum Shape {
+  None = 'none',
+  Circle = 'circle',
+  Square = 'square',
+}
+
 type ComponentContextType = {
   component: ComponentType;
   setComponent: Function;
@@ -42,7 +49,11 @@ type ComponentContextType = {
   mapLed: Function;
   focusedInput: FocusedInputType;
   setFocusedInput: Function;
-  mapShape: Function;
+  shape: Shape;
+  setShape: Function;
+  gridAction: Function;
+  shapeThreshold: number;
+  setShapeThreshold: Function;
   setImage: Function;
 };
 
@@ -55,9 +66,9 @@ const ComponentContext = createContext<ComponentContextType>({
     LedCount: 1,
     Width: 1,
     Height: 1,
-    LedMapping: [0],
+    // LedMapping: [0],
     LedCoordinates: [],
-    LedNames: [],
+    // LedNames: [],
     Image: '',
   },
   setComponent: () => {},
@@ -66,7 +77,7 @@ const ComponentContext = createContext<ComponentContextType>({
     [
       {
         led: -1,
-        x: 1,
+        x: 0,
         y: 0,
       },
     ],
@@ -78,7 +89,11 @@ const ComponentContext = createContext<ComponentContextType>({
     y: -1,
   },
   setFocusedInput: () => {},
-  mapShape: () => {},
+  shape: Shape.None,
+  setShape: () => {},
+  gridAction: () => {},
+  shapeThreshold: 3,
+  setShapeThreshold: () => {},
   setImage: () => {},
 });
 
@@ -95,20 +110,22 @@ export function ComponentContextProvider({
     LedCount: 1,
     Width: 1,
     Height: 1,
-    LedMapping: [0],
+    // LedMapping: [0],
     LedCoordinates: [],
-    LedNames: [],
+    // LedNames: [],
     Image: '',
   });
   const [grid, setGrid] = useState<GridItemType[][]>([
     [
       {
         led: -1,
-        x: 1,
+        x: 0,
         y: 0,
       },
     ],
   ]);
+  const [shape, setShape] = useState<Shape>(Shape.None);
+  const [shapeThreshold, setShapeThreshold] = useState<number>(3);
   const [focusedInput, setFocusedInput] = useState<FocusedInputType>({
     x: -1,
     y: -1,
@@ -153,7 +170,7 @@ export function ComponentContextProvider({
           ...newGrid[y],
           ...Array.from({ length: Width - newGrid[y].length }, (_, x) => ({
             led: -1,
-            x: newGrid[y].length + x + 1,
+            x: newGrid[y].length + x,
             y,
           })),
         ];
@@ -187,6 +204,9 @@ export function ComponentContextProvider({
       ...component,
       LedCoordinates: flatGrid.map((item) => [item.x, item.y]),
     });
+
+    console.log('GRID:', grid);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
 
@@ -194,11 +214,11 @@ export function ComponentContextProvider({
     (x: number, y: number, led: number) => {
       let newGrid = [...grid];
       let newGridRow = [...grid[y]];
-      let newGridItem = { ...grid[y][x - 1] };
+      let newGridItem = { ...grid[y][x] };
 
       newGridItem.led = led;
 
-      newGridRow[x - 1] = newGridItem;
+      newGridRow[x] = newGridItem;
       newGrid[y] = newGridRow;
 
       setGrid(newGrid);
@@ -211,11 +231,24 @@ export function ComponentContextProvider({
         });
       }
     },
-    [grid]
+    [component, grid]
   );
+
+  const clearGrid = useCallback(() => {
+    setGrid(
+      grid.map((row) =>
+        row.map((item) => {
+          item.led = -1;
+          return item;
+        })
+      )
+    );
+  }, [grid]);
 
   const mapSquareOnGrid = useCallback(() => {
     const { Width, Height } = component;
+
+    clearGrid();
 
     let topRowLeds = [];
     let rightColumnLeds = [];
@@ -235,13 +268,6 @@ export function ComponentContextProvider({
         }
       }
     }
-
-    console.log('leftColumnLeds:', {
-      topRowLeds,
-      rightColumnLeds,
-      leftColumnLeds,
-      bottomRowLeds,
-    });
 
     const ledSequence = [
       ...topRowLeds,
@@ -265,18 +291,54 @@ export function ComponentContextProvider({
     });
 
     setGrid(newGrid);
-  }, [component, grid]);
+  }, [clearGrid, component, grid]);
 
-  const clearGrid = useCallback(() => {
+  const mapCircleOnGrid = useCallback(() => {
+    const { Width, Height } = component;
+
+    let radius: number = Width <= Height ? (Width - 1) / 2 : (Height - 1) / 2;
+    let centerX: number = (Width - 1) / 2;
+    let centerY: number = (Height - 1) / 2;
+
+    clearGrid();
+
+    let ledNumber = 0;
+
     setGrid(
       grid.map((row) =>
         row.map((item) => {
-          item.led = -1;
+          const { x, y } = item;
+
+          const solution = distance(x, y, centerX, centerY);
+
+          const size = Width <= Height ? Width : Height;
+          const radiusPercent = (size / 100) * shapeThreshold;
+          if (
+            solution >= radius - radiusPercent &&
+            solution <= radius + radiusPercent
+          ) {
+            item.led = ledNumber;
+            ledNumber++;
+          }
           return item;
         })
       )
     );
-  }, [grid]);
+
+    setComponent({
+      ...component,
+      LedCount: ledNumber,
+    });
+  }, [clearGrid, component, grid, shapeThreshold]);
+
+  useEffect(() => {
+    switch (shape) {
+      case Shape.Circle:
+        mapCircleOnGrid();
+        break;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shapeThreshold]);
 
   const shiftLedsClockWise = useCallback(() => {
     const newGrid = grid
@@ -342,15 +404,46 @@ export function ComponentContextProvider({
     );
   }, [grid]);
 
-  const mapShape = useCallback(
+  const reverseLedMapping = useCallback(() => {
+    const newGrid: GridItemType[] = grid
+      .flat()
+      .filter((a: GridItemType) => a.led !== -1)
+      .sort((a: GridItemType, b: GridItemType) => a.led - b.led);
+
+    const leds = newGrid.map((item) => item.led).reverse();
+    newGrid.map((item, index) => (item.led = leds[index]));
+
+    setGrid(
+      grid.map((row: GridItemType[]): GridItemType[] =>
+        row.map((item: GridItemType): GridItemType => {
+          const { x, y } = item;
+          const reversedItem = newGrid.find(
+            (e: GridItemType) => e.x === x && e.y === y
+          );
+
+          if (reversedItem) {
+            item.led = reversedItem.led;
+          }
+
+          return item;
+        })
+      )
+    );
+  }, [grid]);
+
+  const gridAction = useCallback(
     (shape: string) => {
       switch (shape) {
-        case 'circle':
+        case Shape.Circle:
+          setShape(Shape.Circle);
+          mapCircleOnGrid();
           break;
-        case 'square':
+        case Shape.Square:
+          setShape(Shape.Square);
           mapSquareOnGrid();
           break;
         case 'clear':
+          setShape(Shape.None);
           clearGrid();
           break;
         case 'clockwise':
@@ -359,9 +452,18 @@ export function ComponentContextProvider({
         case 'anti-clockwise':
           shiftLedsAntiClockWise();
           break;
+        case 'reverse':
+          reverseLedMapping();
+          break;
       }
     },
-    [clearGrid, mapSquareOnGrid, shiftLedsAntiClockWise, shiftLedsClockWise]
+    [
+      clearGrid,
+      mapCircleOnGrid,
+      mapSquareOnGrid,
+      shiftLedsAntiClockWise,
+      shiftLedsClockWise,
+    ]
   );
 
   const setImage = useCallback(
@@ -381,13 +483,27 @@ export function ComponentContextProvider({
       LedsUsed,
       grid,
       setGrid,
+      shape,
+      setShape,
       mapLed,
       focusedInput,
       setFocusedInput,
-      mapShape,
+      gridAction,
+      shapeThreshold,
+      setShapeThreshold,
       setImage,
     }),
-    [component, setImage, grid, mapLed, focusedInput, LedsUsed]
+    [
+      component,
+      LedsUsed,
+      grid,
+      shape,
+      mapLed,
+      focusedInput,
+      gridAction,
+      shapeThreshold,
+      setImage,
+    ]
   );
 
   return (

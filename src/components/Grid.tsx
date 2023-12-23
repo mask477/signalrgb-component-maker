@@ -1,20 +1,32 @@
-import React, { useEffect } from 'react';
-import { Alert, Button, ListGroup } from 'react-bootstrap';
-import { useComponent } from '../context/ComponentContext';
+import React, { ChangeEvent, useEffect } from 'react';
+import {
+  Alert,
+  Button,
+  ButtonGroup,
+  Form,
+  InputGroup,
+  ListGroup,
+  OverlayTrigger,
+  Tooltip,
+} from 'react-bootstrap';
+import { Shape, useComponent } from '../context/ComponentContext';
 import GridRowItem from './GridRowItem';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import { faCircle, faSquare } from '@fortawesome/free-regular-svg-icons';
 import {
+  faArrowRightArrowLeft,
   faArrowRotateLeft,
   faArrowRotateRight,
   faEraser,
 } from '@fortawesome/free-solid-svg-icons';
+import ThresholdInput from './ThresholdInput';
+import GridControlButton from './GridControlButton';
 
 export default function Grid() {
-  const { grid, LedsUsed, mapShape } = useComponent();
+  const { grid, LedsUsed, gridAction, shape } = useComponent();
 
-  const onClickShapeHandler = (shape: string) => mapShape(shape);
+  const onClickActionHandler = (shape: string) => gridAction(shape);
 
   return (
     <>
@@ -76,7 +88,7 @@ export default function Grid() {
             </ul>
           </Alert>
           <div className="row justify-content-center">
-            <div className="grid">
+            <div className="grid mb-4">
               {grid.map((items, idx) => (
                 <div className="grid-row" key={`row-${idx}`}>
                   {items.map((item, itemIdx) => (
@@ -88,24 +100,46 @@ export default function Grid() {
 
             <div className="shape-controls">
               <div>
-                <Button onClick={() => onClickShapeHandler('circle')}>
-                  <FontAwesomeIcon icon={faCircle} />
-                </Button>
-                <Button onClick={() => onClickShapeHandler('square')}>
-                  <FontAwesomeIcon icon={faSquare} />
-                </Button>
-                <Button onClick={() => onClickShapeHandler('clear')}>
-                  <FontAwesomeIcon icon={faEraser} />
-                </Button>
+                <ButtonGroup>
+                  <Button
+                    onClick={() => onClickActionHandler(Shape.Circle)}
+                    variant={shape === Shape.Circle ? 'primary' : 'secondary'}
+                  >
+                    <FontAwesomeIcon icon={faCircle} />
+                  </Button>
+                  <Button
+                    onClick={() => onClickActionHandler(Shape.Square)}
+                    variant={shape === Shape.Square ? 'primary' : 'secondary'}
+                  >
+                    <FontAwesomeIcon icon={faSquare} />
+                  </Button>
+                </ButtonGroup>
+                <GridControlButton
+                  onClick={() => onClickActionHandler('clear')}
+                  toolTipText="Clear the grid mappings"
+                  icon={faEraser}
+                />
               </div>
 
               <div>
-                <Button onClick={() => onClickShapeHandler('clockwise')}>
-                  <FontAwesomeIcon icon={faArrowRotateLeft} />
-                </Button>
-                <Button onClick={() => onClickShapeHandler('anti-clockwise')}>
-                  <FontAwesomeIcon icon={faArrowRotateRight} />
-                </Button>
+                {shape === Shape.Circle && <ThresholdInput />}
+                <ButtonGroup>
+                  <GridControlButton
+                    onClick={() => onClickActionHandler('clockwise')}
+                    toolTipText="Shift Leds Clockwise"
+                    icon={faArrowRotateLeft}
+                  />
+                  <GridControlButton
+                    onClick={() => onClickActionHandler('anti-clockwise')}
+                    toolTipText="Shift Leds Anti-Clockwise"
+                    icon={faArrowRotateRight}
+                  />
+                  <GridControlButton
+                    onClick={() => onClickActionHandler('reverse')}
+                    toolTipText="Reverse the direction of the led sequence"
+                    icon={faArrowRightArrowLeft}
+                  />
+                </ButtonGroup>
               </div>
             </div>
           </div>
