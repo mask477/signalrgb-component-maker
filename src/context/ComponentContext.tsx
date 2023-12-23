@@ -217,23 +217,48 @@ export function ComponentContextProvider({
   const mapSquareOnGrid = useCallback(() => {
     const { Width, Height } = component;
 
-    let ledNumber = 0;
-    const newGrid = grid.map((row: GridItemType[], rowIndex: number) =>
-      row.map((item: GridItemType, itemIndex: number) => {
-        if (
-          rowIndex === 0 ||
-          rowIndex === Height - 1 ||
-          itemIndex === 0 ||
-          itemIndex === Width - 1
-        ) {
-          item.led = ledNumber;
+    let topRowLeds = [];
+    let rightColumnLeds = [];
+    let bottomRowLeds = [];
+    let leftColumnLeds = [];
 
-          ledNumber++;
+    for (let y = 0; y < Height; y++) {
+      for (let x = 0; x < Width; x++) {
+        if (y === 0) {
+          topRowLeds.push({ x, y });
+        } else if (y === Height - 1) {
+          bottomRowLeds.unshift({ x, y });
+        } else if (x === 0) {
+          leftColumnLeds.unshift({ x, y });
+        } else if (x === Width - 1) {
+          rightColumnLeds.push({ x, y });
         }
+      }
+    }
 
-        return item;
-      })
-    );
+    console.log('leftColumnLeds:', {
+      topRowLeds,
+      rightColumnLeds,
+      leftColumnLeds,
+      bottomRowLeds,
+    });
+
+    const ledSequence = [
+      ...topRowLeds,
+      ...rightColumnLeds,
+      ...bottomRowLeds,
+      ...leftColumnLeds,
+    ];
+
+    let ledNumber = 0;
+    let newGrid = [...grid];
+
+    ledSequence.forEach((led): void => {
+      const { x, y } = led;
+      newGrid[y][x].led = ledNumber;
+      ledNumber++;
+    });
+
     setComponent({
       ...component,
       LedCount: ledNumber,
