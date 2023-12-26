@@ -1,4 +1,4 @@
-import React, { SyntheticEvent, useRef } from 'react';
+import React, { SyntheticEvent, useRef, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { useComponent } from '../context/ComponentContext';
 import Field from './Field';
@@ -16,6 +16,7 @@ type FormFieldType = {
 
 export default function ComponentForm() {
   const { component, setComponent } = useComponent();
+
   const formRef = useRef<HTMLFormElement>(null);
 
   const formFields: FormFieldType[] = [
@@ -98,6 +99,8 @@ export default function ComponentForm() {
     const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
       JSON.stringify(json, null, 1)
     )}`;
+    console.log('json:', jsonString);
+
     const link = document.createElement('a');
     link.href = jsonString;
     link.download = `${json.DisplayName}.json`;

@@ -14,34 +14,15 @@ export default function ThresholdInput() {
     }
   };
 
-  const onKeyDownHandler = useCallback(
-    (event: any) => {
-      const { key } = event;
-      if (isNaN(key) && ['ArrowUp', 'ArrowDown'].includes(key)) {
-        event.preventDefault();
-
-        switch (key) {
-          case 'ArrowUp':
-            setShapeThreshold(+(shapeThreshold + 0.1).toFixed(1));
-            break;
-          case 'ArrowDown':
-            setShapeThreshold(+(shapeThreshold - 0.1).toFixed(1));
-            break;
-        }
-      }
-    },
-    [setShapeThreshold, shapeThreshold]
-  );
-
   return (
     <InputGroup>
       <InputGroup.Text>Threshold:</InputGroup.Text>
       <Form.Control
         type="number"
+        step="0.1"
         min={0}
         onChange={onThresholdChangeHandler}
         value={shapeThreshold}
-        onKeyDown={onKeyDownHandler}
         size="sm"
         style={{ width: 100 }}
       />

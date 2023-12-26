@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { distance, solveCircle, sortCircle } from '../utils/Functions';
+import { distance, sortCircle } from '../utils/Functions';
 
 type ComponentType = {
   ProductName: string;
@@ -199,8 +199,6 @@ export function ComponentContextProvider({
       LedCoordinates: flatGrid.map((item) => [item.x, item.y]),
     });
 
-    console.log('GRID:', grid);
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
 
@@ -288,6 +286,10 @@ export function ComponentContextProvider({
   }, [clearGrid, component, grid]);
 
   const mapCircleOnGrid = useCallback(() => {
+    if (grid.flat().length < 4) {
+      return;
+    }
+
     const { Width, Height } = component;
 
     let radius: number = Width <= Height ? (Width - 1) / 2 : (Height - 1) / 2;
@@ -297,7 +299,7 @@ export function ComponentContextProvider({
     clearGrid();
 
     let ledNumber = 0;
-    const oldGrid = grid.map((row) =>
+    const newGrid = grid.map((row) =>
       row.map((item) => {
         const { x, y } = item;
 
@@ -315,30 +317,32 @@ export function ComponentContextProvider({
         return item;
       })
     );
-    const newGrid = sortCircle(oldGrid, { x: centerX, y: centerY });
+    const filteredGrid = newGrid.flat().filter((item) => item.led !== -1);
 
-    console.log(oldGrid.flat(), newGrid);
+    ledNumber = 0;
+    let sortedGrid = sortCircle(filteredGrid, { x: centerX, y: centerY }).map(
+      (item) => {
+        item.led = ledNumber++;
 
-    // setGrid(
-    //   grid.map((row) =>
-    //     row.map((item) => {
-    //       const { x, y } = item;
+        return item;
+      }
+    );
 
-    //       const solution = distance(x, y, centerX, centerY);
+    setGrid(
+      newGrid.map((row, rowIdx) =>
+        row.map((item, itemIdx) => {
+          const { x, y } = item;
+          const sortedItem = sortedGrid.find(
+            (e) => e.x === x && e.y === item.y
+          );
 
-    //       const size = Width <= Height ? Width : Height;
-    //       const radiusPercent = (size / 100) * shapeThreshold;
-    //       if (
-    //         solution >= radius - radiusPercent &&
-    //         solution <= radius + radiusPercent
-    //       ) {
-    //         item.led = ledNumber;
-    //         ledNumber++;
-    //       }
-    //       return item;
-    //     })
-    //   )
-    // );
+          if (sortedItem) {
+            item.led = sortedItem.led;
+          }
+          return item;
+        })
+      )
+    );
 
     setComponent({
       ...component,
