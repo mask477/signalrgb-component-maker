@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { distance, solveCircle } from '../utils/Functions';
+import { distance, solveCircle, sortCircle } from '../utils/Functions';
 
 type ComponentType = {
   ProductName: string;
@@ -17,9 +17,7 @@ type ComponentType = {
   LedCount: number;
   Width: number;
   Height: number;
-  // LedMapping: number[];
   LedCoordinates: any;
-  // LedNames: string[];
   Image: string;
 };
 
@@ -66,9 +64,7 @@ const ComponentContext = createContext<ComponentContextType>({
     LedCount: 1,
     Width: 1,
     Height: 1,
-    // LedMapping: [0],
     LedCoordinates: [],
-    // LedNames: [],
     Image: '',
   },
   setComponent: () => {},
@@ -110,9 +106,7 @@ export function ComponentContextProvider({
     LedCount: 1,
     Width: 1,
     Height: 1,
-    // LedMapping: [0],
     LedCoordinates: [],
-    // LedNames: [],
     Image: '',
   });
   const [grid, setGrid] = useState<GridItemType[][]>([
@@ -303,27 +297,48 @@ export function ComponentContextProvider({
     clearGrid();
 
     let ledNumber = 0;
+    const oldGrid = grid.map((row) =>
+      row.map((item) => {
+        const { x, y } = item;
 
-    setGrid(
-      grid.map((row) =>
-        row.map((item) => {
-          const { x, y } = item;
+        const solution = distance(x, y, centerX, centerY);
 
-          const solution = distance(x, y, centerX, centerY);
-
-          const size = Width <= Height ? Width : Height;
-          const radiusPercent = (size / 100) * shapeThreshold;
-          if (
-            solution >= radius - radiusPercent &&
-            solution <= radius + radiusPercent
-          ) {
-            item.led = ledNumber;
-            ledNumber++;
-          }
-          return item;
-        })
-      )
+        const size = Width <= Height ? Width : Height;
+        const radiusPercent = (size / 100) * shapeThreshold;
+        if (
+          solution >= radius - radiusPercent &&
+          solution <= radius + radiusPercent
+        ) {
+          item.led = ledNumber;
+          ledNumber++;
+        }
+        return item;
+      })
     );
+    const newGrid = sortCircle(oldGrid, { x: centerX, y: centerY });
+
+    console.log(oldGrid.flat(), newGrid);
+
+    // setGrid(
+    //   grid.map((row) =>
+    //     row.map((item) => {
+    //       const { x, y } = item;
+
+    //       const solution = distance(x, y, centerX, centerY);
+
+    //       const size = Width <= Height ? Width : Height;
+    //       const radiusPercent = (size / 100) * shapeThreshold;
+    //       if (
+    //         solution >= radius - radiusPercent &&
+    //         solution <= radius + radiusPercent
+    //       ) {
+    //         item.led = ledNumber;
+    //         ledNumber++;
+    //       }
+    //       return item;
+    //     })
+    //   )
+    // );
 
     setComponent({
       ...component,
