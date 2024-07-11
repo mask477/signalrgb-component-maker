@@ -1,4 +1,10 @@
-import React, { SyntheticEvent, useRef, useState } from 'react';
+import React, {
+  ChangeEvent,
+  ChangeEventHandler,
+  SyntheticEvent,
+  useRef,
+  useState,
+} from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { useComponent } from '../context/ComponentContext';
 import Field from './Field';
@@ -71,17 +77,17 @@ export default function ComponentForm() {
     },
   ];
 
-  const onChangeHandler = (e: any) => {
+  const onChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const { target } = e;
     let { name, value } = target;
 
     const field = formFields.find((field) => field.name === name);
 
     if (field && field.type === 'number') {
-      value = parseInt(value);
+      setComponent({ ...component, [name]: parseInt(value) });
+    } else {
+      setComponent({ ...component, [name]: value });
     }
-
-    setComponent({ ...component, [name]: value });
   };
 
   const onSubmitHandler = (e: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {

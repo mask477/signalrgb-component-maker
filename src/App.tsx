@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { ComponentContextProvider } from './context/ComponentContext';
 
 import ComponentForm from './components/ComponentForm';

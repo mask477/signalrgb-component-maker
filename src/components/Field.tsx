@@ -1,6 +1,18 @@
 import { ChangeEventHandler } from 'react';
 import { Form } from 'react-bootstrap';
 
+export type FieldType = 'text' | 'number' | 'file';
+
+interface FieldPropTypes {
+  name: string;
+  label: string;
+  placeholder: string;
+  type?: string;
+  width?: string;
+  value?: any;
+  onChange: ChangeEventHandler;
+}
+
 export default function Field({
   name,
   label,
@@ -9,15 +21,7 @@ export default function Field({
   width = 'col-md-6',
   value,
   onChange,
-}: {
-  name: string;
-  label: string;
-  placeholder: string;
-  type?: string;
-  width?: string;
-  value?: any;
-  onChange: ChangeEventHandler;
-}) {
+}: FieldPropTypes) {
   return (
     <div className={width}>
       <Form.Group className="mb-3">

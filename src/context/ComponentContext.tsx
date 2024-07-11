@@ -36,6 +36,7 @@ export enum Shape {
   None = 'none',
   Circle = 'circle',
   Square = 'square',
+  Custom = 'custom',
 }
 
 type ComponentContextType = {
@@ -53,6 +54,8 @@ type ComponentContextType = {
   shapeThreshold: number;
   setShapeThreshold: Function;
   setImage: Function;
+  shapeImage: HTMLImageElement;
+  setShapeImage: Function;
 };
 
 const ComponentContext = createContext<ComponentContextType>({
@@ -91,6 +94,8 @@ const ComponentContext = createContext<ComponentContextType>({
   shapeThreshold: 3,
   setShapeThreshold: () => {},
   setImage: () => {},
+  shapeImage: new Image(),
+  setShapeImage: () => {},
 });
 
 export function ComponentContextProvider({
@@ -124,6 +129,8 @@ export function ComponentContextProvider({
     x: -1,
     y: -1,
   });
+
+  const [shapeImage, setShapeImage] = useState<HTMLImageElement>(new Image());
 
   useEffect(() => {
     const newComponent = {
@@ -451,8 +458,8 @@ export function ComponentContextProvider({
   }, [grid]);
 
   const gridAction = useCallback(
-    (shape: string) => {
-      switch (shape) {
+    (action: string) => {
+      switch (action) {
         case Shape.Circle:
           setShape(Shape.Circle);
           mapCircleOnGrid();
@@ -460,6 +467,10 @@ export function ComponentContextProvider({
         case Shape.Square:
           setShape(Shape.Square);
           mapSquareOnGrid();
+          break;
+        case Shape.Custom:
+          setShape(Shape.Custom);
+          clearGrid();
           break;
         case 'clear':
           setShape(Shape.None);
@@ -480,6 +491,7 @@ export function ComponentContextProvider({
       clearGrid,
       mapCircleOnGrid,
       mapSquareOnGrid,
+      reverseLedMapping,
       shiftLedsAntiClockWise,
       shiftLedsClockWise,
     ]
@@ -511,6 +523,8 @@ export function ComponentContextProvider({
       shapeThreshold,
       setShapeThreshold,
       setImage,
+      shapeImage,
+      setShapeImage,
     }),
     [
       component,
@@ -522,6 +536,8 @@ export function ComponentContextProvider({
       gridAction,
       shapeThreshold,
       setImage,
+      shapeImage,
+      setShapeImage,
     ]
   );
 
