@@ -1,5 +1,4 @@
 import React, { ChangeEvent, useCallback, useEffect, useRef } from 'react';
-import cv from '@techstark/opencv-js';
 import { Alert, Button, ButtonGroup } from 'react-bootstrap';
 import { Shape, useComponent } from '../context/ComponentContext';
 import GridRowItem from './GridRowItem';
@@ -16,6 +15,7 @@ import {
 import ThresholdInput from './ThresholdInput';
 import GridControlButton from './GridControlButton';
 import Field from './Field';
+import { sortVerticesClockwise, transformVertices } from '../utils/Functions';
 
 export default function Grid() {
   const {
@@ -27,7 +27,7 @@ export default function Grid() {
     shapeImage,
     setShapeImage,
   } = useComponent();
-  const { Width, Height } = component;
+  const { Width, Height, LedCount } = component;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas2Ref = useRef<HTMLCanvasElement>(null);
@@ -89,6 +89,8 @@ export default function Grid() {
 
     const image = shapeImage;
 
+    const cv = window.cv;
+
     const src = cv.imread(canvas);
     const gray = new cv.Mat();
     const edges = new cv.Mat();
@@ -118,9 +120,20 @@ export default function Grid() {
 
     console.log('All Vertices:', allVertices);
 
-    // allVertices = sortVerticesClockwise(allVertices);
+    allVertices = sortVerticesClockwise(allVertices);
 
-    // equallyDistantVertices = transformVertices(allVertices);
+    let equallyDistantVertices = transformVertices(
+      allVertices,
+      {
+        width: canvasRef.current.width,
+        height: canvasRef.current.height,
+      },
+      {
+        width: Width,
+        height: Height,
+      },
+      LedCount
+    );
 
     // console.log('equallyDistantVertices:', equallyDistantVertices);
 
@@ -132,7 +145,7 @@ export default function Grid() {
     edges.delete();
     contours.delete();
     hierarchy.delete();
-  }, [canvasRef, shapeImage]);
+  }, [Height, LedCount, Width, shapeImage]);
 
   return (
     <>

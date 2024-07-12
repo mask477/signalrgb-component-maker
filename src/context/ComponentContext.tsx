@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { distance, sortCircle } from '../utils/Functions';
+import { distance, sortCircle, VertexType } from '../utils/Functions';
 
 type ComponentType = {
   ProductName: string;
@@ -64,9 +64,9 @@ const ComponentContext = createContext<ComponentContextType>({
     DisplayName: '',
     Brand: '',
     Type: '',
-    LedCount: 1,
-    Width: 1,
-    Height: 1,
+    LedCount: 8,
+    Width: 10,
+    Height: 10,
     LedCoordinates: [],
     Image: '',
   },
@@ -82,6 +82,7 @@ const ComponentContext = createContext<ComponentContextType>({
     ],
   ],
   setGrid: () => {},
+  mapVertices: (vertices: VertexType[]) => {},
   mapLed: () => {},
   focusedInput: {
     x: -1,
@@ -109,8 +110,8 @@ export function ComponentContextProvider({
     Brand: '',
     Type: '',
     LedCount: 1,
-    Width: 1,
-    Height: 1,
+    Width: 10,
+    Height: 10,
     LedCoordinates: [],
     Image: '',
   });
@@ -507,6 +508,22 @@ export function ComponentContextProvider({
     [component]
   );
 
+  const mapVertices = useCallback(
+    (vertices: VertexType[]) => {
+      setGrid(
+        grid.map((row, y) =>
+          row.map((cell, x) => ({
+            ...cell,
+            led: vertices.findIndex(
+              (vertex) => vertex.x === x && vertex.y === y
+            ),
+          }))
+        )
+      );
+    },
+    [grid]
+  );
+
   const context = useMemo(
     () => ({
       component,
@@ -514,6 +531,7 @@ export function ComponentContextProvider({
       LedsUsed,
       grid,
       setGrid,
+      mapVertices,
       shape,
       setShape,
       mapLed,
@@ -530,6 +548,7 @@ export function ComponentContextProvider({
       component,
       LedsUsed,
       grid,
+      mapVertices,
       shape,
       mapLed,
       focusedInput,
