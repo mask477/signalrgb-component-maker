@@ -15,7 +15,12 @@ import {
 import ThresholdInput from './ThresholdInput';
 import GridControlButton from './GridControlButton';
 import Field from './Field';
-import { sortVerticesClockwise, transformVertices } from '../utils/Functions';
+import {
+  scaleVertices,
+  sortVerticesClockwise,
+  transformVertices,
+  VertexType,
+} from '../utils/Functions';
 
 export default function Grid() {
   const {
@@ -26,11 +31,13 @@ export default function Grid() {
     shape,
     shapeImage,
     setShapeImage,
+    mapVertices,
   } = useComponent();
   const { Width, Height, LedCount } = component;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvas2Ref = useRef<HTMLCanvasElement>(null);
+  const canvas3Ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const drawWidth = Width * 10;
@@ -118,27 +125,34 @@ export default function Grid() {
       }
     }
 
-    console.log('All Vertices:', allVertices);
-
     allVertices = sortVerticesClockwise(allVertices);
 
-    let equallyDistantVertices = transformVertices(
+    let equallyDistantVertices = scaleVertices(
       allVertices,
-      {
-        width: canvasRef.current.width,
-        height: canvasRef.current.height,
-      },
-      {
-        width: Width,
-        height: Height,
-      },
+      Width,
+      Height,
       LedCount
     );
 
-    // console.log('equallyDistantVertices:', equallyDistantVertices);
+    // let equallyDistantVertices = transformVertices(
+    //   allVertices,
+    //   {
+    //     width: canvasRef.current.width,
+    //     height: canvasRef.current.height,
+    //   },
+    //   {
+    //     width: Width,
+    //     height: Height,
+    //   },
+    //   LedCount
+    // );
 
-    // drawAllVertices();
-    // drawSrgbCanvas();
+    drawCanvas2(allVertices);
+    drawCanvas3(equallyDistantVertices);
+
+    console.log('equallyDistantVertices:', equallyDistantVertices);
+
+    mapVertices(equallyDistantVertices);
 
     src.delete();
     gray.delete();
@@ -146,6 +160,74 @@ export default function Grid() {
     contours.delete();
     hierarchy.delete();
   }, [Height, LedCount, Width, shapeImage]);
+
+  const drawCanvas2 = (vertices: VertexType[]) => {
+    const canvas2 = canvas2Ref.current;
+
+    if (!canvas2) {
+      return;
+    }
+
+    const context = canvas2.getContext('2d');
+
+    if (!context) {
+      return;
+    }
+    context.clearRect(0, 0, canvas2.width, canvas2.height);
+
+    context.beginPath();
+    context.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < vertices.length; i++) {
+      context.lineTo(vertices[i].x, vertices[i].y);
+    }
+    context.stroke();
+    context.closePath();
+
+    for (let i = 0; i < vertices.length; i++) {
+      context.beginPath();
+      context.arc(vertices[i].x, vertices[i].y, 2, 0, 2 * Math.PI);
+      context.fillStyle = 'red';
+      context.fill();
+      context.closePath();
+    }
+  };
+
+  const drawCanvas3 = (vertices: VertexType[]) => {
+    const canvas3 = canvas3Ref.current;
+
+    if (!canvas3) {
+      return;
+    }
+    const context = canvas3.getContext('2d');
+
+    if (!context) {
+      return;
+    }
+
+    context.clearRect(0, 0, canvas3.width, canvas3.height);
+
+    for (let y = 0; y < Height; y++) {
+      for (let x = 0; x < Width; x++) {
+        const drawAtX = 10 * x;
+        const drawAtY = 10 * y;
+
+        const shouldFill = vertices.find(
+          (vertex) => Math.floor(vertex.x) === x && Math.floor(vertex.y) === y
+        );
+
+        context.beginPath();
+        if (shouldFill) {
+          context.fillStyle = 'red';
+          context.fillRect(drawAtX, drawAtY, 10, 10);
+        } else {
+          context.rect(drawAtX, drawAtY, 10, 10);
+        }
+
+        context.stroke();
+        context.closePath();
+      }
+    }
+  };
 
   return (
     <>
@@ -208,44 +290,51 @@ export default function Grid() {
           </Alert>
 
           <div className="row justify-content-center">
-            <div className={shape === Shape.Custom ? 'col-6' : 'col-12'}>
-              <div className="grid mb-4">
-                {grid.map((items, idx) => (
-                  <div className="grid-row" key={`row-${idx}`}>
-                    {items.map((item, itemIdx) => (
-                      <GridRowItem key={`item-${itemIdx}`} item={item} />
-                    ))}
-                  </div>
-                ))}
-              </div>
+            <div className="grid mb-4">
+              {grid.map((items, idx) => (
+                <div className="grid-row" key={`row-${idx}`}>
+                  {items.map((item, itemIdx) => (
+                    <GridRowItem key={`item-${itemIdx}`} item={item} />
+                  ))}
+                </div>
+              ))}
             </div>
 
             {shape === Shape.Custom && (
-              <div className="col-6">
-                <Field
-                  name="image"
-                  label="Shape Image"
-                  placeholder="Upload shape Image"
-                  type="file"
-                  onChange={onChangeShapeImageHandler}
-                />
+              <div className="row justify-content-center mb-4">
+                <div className="col-md-6 col-sm-12">
+                  <div>
+                    <Field
+                      name="image"
+                      label="Shape Image"
+                      placeholder="Upload shape Image"
+                      type="file"
+                      onChange={onChangeShapeImageHandler}
+                    />
+                  </div>
+                  <div>
+                    <canvas
+                      ref={canvasRef}
+                      className="border"
+                      width="200"
+                      height="200"
+                    ></canvas>
+                    <canvas
+                      ref={canvas2Ref}
+                      className="border"
+                      width="200"
+                      height="200"
+                    ></canvas>
 
-                <div>
-                  <canvas
-                    ref={canvasRef}
-                    className="border"
-                    width="200"
-                    height="200"
-                  ></canvas>
-
-                  <canvas
-                    ref={canvas2Ref}
-                    className="border"
-                    width="200"
-                    height="200"
-                  ></canvas>
+                    <canvas
+                      ref={canvas3Ref}
+                      className="border"
+                      width="200"
+                      height="200"
+                    ></canvas>
+                  </div>
+                  <Button onClick={onClickTrace}>Trace</Button>
                 </div>
-                <Button onClick={onClickTrace}>Trace</Button>
               </div>
             )}
 

@@ -45,6 +45,7 @@ type ComponentContextType = {
   LedsUsed: number;
   grid: GridItemType[][];
   setGrid: Function;
+  mapVertices: Function;
   mapLed: Function;
   focusedInput: FocusedInputType;
   setFocusedInput: Function;
@@ -82,7 +83,7 @@ const ComponentContext = createContext<ComponentContextType>({
     ],
   ],
   setGrid: () => {},
-  mapVertices: (vertices: VertexType[]) => {},
+  mapVertices: () => {},
   mapLed: () => {},
   focusedInput: {
     x: -1,
@@ -358,6 +359,23 @@ export function ComponentContextProvider({
     });
   }, [clearGrid, component, grid, shapeThreshold]);
 
+  const mapVertices = useCallback(
+    (vertices: VertexType[]) => {
+      setGrid(
+        grid.map((row, y) =>
+          row.map((cell, x) => ({
+            ...cell,
+            led: vertices.findIndex(
+              (vertex: VertexType) =>
+                Math.floor(vertex.x) === x && Math.floor(vertex.y) === y
+            ),
+          }))
+        )
+      );
+    },
+    [grid]
+  );
+
   useEffect(() => {
     switch (shape) {
       case Shape.Circle:
@@ -506,22 +524,6 @@ export function ComponentContextProvider({
       });
     },
     [component]
-  );
-
-  const mapVertices = useCallback(
-    (vertices: VertexType[]) => {
-      setGrid(
-        grid.map((row, y) =>
-          row.map((cell, x) => ({
-            ...cell,
-            led: vertices.findIndex(
-              (vertex) => vertex.x === x && vertex.y === y
-            ),
-          }))
-        )
-      );
-    },
-    [grid]
   );
 
   const context = useMemo(

@@ -110,8 +110,8 @@ export function transformVertices(
   numVertices: number
 ) {
   // Calculate the bounding box of the original vertices
-  const minX = 0;
-  const minY = 0;
+  const minX = 1;
+  const minY = 1;
 
   const originalWidth = source.width;
   const originalHeight = source.height;
@@ -146,24 +146,24 @@ export function transformVertices(
     const segmentLength = totalLength / numVertices;
 
     let currentSegment = 0;
-    let accumulatedLength = 0;
+    let aLength = 0;
     for (let i = 0; i < numVertices; i++) {
       while (
-        accumulatedLength +
+        aLength +
           Math.hypot(
             vertices[currentSegment + 1].x - vertices[currentSegment].x,
             vertices[currentSegment + 1].y - vertices[currentSegment].y
           ) <
         segmentLength * i
       ) {
-        accumulatedLength += Math.hypot(
+        aLength += Math.hypot(
           vertices[currentSegment + 1].x - vertices[currentSegment].x,
           vertices[currentSegment + 1].y - vertices[currentSegment].y
         );
         currentSegment++;
       }
       const t =
-        (segmentLength * i - accumulatedLength) /
+        (segmentLength * i - aLength) /
         Math.hypot(
           vertices[currentSegment + 1].x - vertices[currentSegment].x,
           vertices[currentSegment + 1].y - vertices[currentSegment].y
@@ -183,4 +183,137 @@ export function transformVertices(
   }
 
   return interpolateVertices(scaledVertices, numVertices);
+}
+
+export function scaleVertices(
+  vertices: VertexType[],
+  targetWidth: number,
+  targetHeight: number,
+  targetCount: number
+) {
+  // Step 1: Normalize the vertices to fit within the targetWidth and targetHeight
+  const minX = Math.min(...vertices.map((v) => v.x));
+  const minY = Math.min(...vertices.map((v) => v.y));
+  const maxX = Math.max(...vertices.map((v) => v.x));
+  const maxY = Math.max(...vertices.map((v) => v.y));
+
+  const scaleX = targetWidth / (maxX - minX);
+  const scaleY = targetHeight / (maxY - minY);
+  const scale = Math.min(scaleX, scaleY);
+
+  const normalizedVertices = vertices.map((v) => ({
+    x: Math.round((v.x - minX) * scale),
+    y: Math.round((v.y - minY) * scale),
+  }));
+
+  // Step 2: Reduce the number of vertices to the targetCount
+  const totalLength = calculatePerimeter(normalizedVertices);
+  const segmentLength = totalLength / targetCount;
+
+  const scaledVertices = [];
+  let currentIndex = 0;
+  let accumulatedLength = 0;
+
+  scaledVertices.push(normalizedVertices[0]);
+
+  while (scaledVertices.length < targetCount) {
+    let nextIndex = (currentIndex + 1) % normalizedVertices.length;
+    let dx =
+      normalizedVertices[nextIndex].x - normalizedVertices[currentIndex].x;
+    let dy =
+      normalizedVertices[nextIndex].y - normalizedVertices[currentIndex].y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+
+    while (accumulatedLength + distance < segmentLength) {
+      accumulatedLength += distance;
+      currentIndex = nextIndex;
+      nextIndex = (currentIndex + 1) % normalizedVertices.length;
+      dx = normalizedVertices[nextIndex].x - normalizedVertices[currentIndex].x;
+      dy = normalizedVertices[nextIndex].y - normalizedVertices[currentIndex].y;
+      distance = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    const remainingLength = segmentLength - accumulatedLength;
+    const ratio = remainingLength / distance;
+    const x = Math.round(normalizedVertices[currentIndex].x + ratio * dx);
+    const y = Math.round(normalizedVertices[currentIndex].y + ratio * dy);
+
+    scaledVertices.push({ x, y });
+    accumulatedLength = 0;
+    currentIndex = nextIndex;
+  }
+
+  return scaledVertices;
+}
+
+export function scaleVertices2(
+  vertices: VertexType[],
+  targetWidth: number,
+  targetHeight: number,
+  targetCount: number
+) {
+  // Step 1: Normalize the vertices to fit within the targetWidth and targetHeight
+  const minX = Math.min(...vertices.map((v) => v.x));
+  const minY = Math.min(...vertices.map((v) => v.y));
+  const maxX = Math.max(...vertices.map((v) => v.x));
+  const maxY = Math.max(...vertices.map((v) => v.y));
+
+  const scaleX = targetWidth / (maxX - minX);
+  const scaleY = targetHeight / (maxY - minY);
+  const scale = Math.min(scaleX, scaleY);
+
+  const nV = vertices.map((v) => ({
+    x: (v.x - minX) * scale,
+    y: (v.y - minY) * scale,
+  }));
+
+  // Step 2: Reduce the number of vertices to the targetCount
+  const totalLength = calculatePerimeter(nV);
+  const segmentLength = totalLength / targetCount;
+
+  const scaledVertices = [];
+  let currentIndex = 0;
+  let aLength = 0;
+
+  scaledVertices.push(nV[0]);
+
+  while (scaledVertices.length < targetCount) {
+    let nextIndex = (currentIndex + 1) % nV.length;
+    let dx = nV[nextIndex].x - nV[currentIndex].x;
+    let dy = nV[nextIndex].y - nV[currentIndex].y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+
+    while (aLength + distance < segmentLength) {
+      aLength += distance;
+      currentIndex = nextIndex;
+      nextIndex = (currentIndex + 1) % nV.length;
+      dx = nV[nextIndex].x - nV[currentIndex].x;
+      dy = nV[nextIndex].y - nV[currentIndex].y;
+      distance = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    const remainingLength = segmentLength - aLength;
+    const ratio = remainingLength / distance;
+    const x = nV[currentIndex].x + ratio * dx;
+    const y = nV[currentIndex].y + ratio * dy;
+
+    scaledVertices.push({ x, y });
+    aLength = 0;
+    currentIndex = nextIndex;
+  }
+
+  return scaledVertices;
+}
+
+export function calculatePerimeter(vertices: VertexType[]) {
+  let totalLength = 0;
+  for (let i = 1; i < vertices.length; i++) {
+    const dx = vertices[i].x - vertices[i - 1].x;
+    const dy = vertices[i].y - vertices[i - 1].y;
+    totalLength += Math.sqrt(dx * dx + dy * dy);
+  }
+  const dx = vertices[0].x - vertices[vertices.length - 1].x;
+  const dy = vertices[0].y - vertices[vertices.length - 1].y;
+  totalLength += Math.sqrt(dx * dx + dy * dy);
+  return totalLength;
 }
