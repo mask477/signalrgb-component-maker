@@ -68,7 +68,7 @@ export type VertexType = {
   y: number;
 };
 
-export type Dimensions = {
+export type DimensionsType = {
   width: number;
   height: number;
 };
@@ -89,6 +89,65 @@ export function sortVerticesClockwise(vertices: VertexType[]) {
   });
 }
 
+export function marchSquare(
+  startX: number,
+  startY: number,
+  imageData: ImageData,
+  threshold: number,
+  visited: boolean[]
+) {
+  const { width, data } = imageData;
+  const vertices = [];
+  let x = startX,
+    y = startY;
+
+  do {
+    const index = (y * width + x) * 4;
+    const v0: any = data[index] > threshold;
+    const v1: any = data[index + 4] > threshold;
+    const v2: any = data[index + width * 4] > threshold;
+    const v3: any = data[index + (width + 1) * 4] > threshold;
+
+    let caseIndex = (v0 << 3) | (v1 << 2) | (v2 << 1) | v3;
+    switch (caseIndex) {
+      case 1:
+      case 14:
+        x += 1; // Move right
+        break;
+      case 2:
+      case 13:
+        y += 1; // Move down
+        break;
+      case 4:
+      case 11:
+        x -= 1; // Move left
+        break;
+      case 8:
+      case 7:
+        y -= 1; // Move up
+        break;
+      case 3:
+      case 12:
+        x += 1;
+        break;
+      case 6:
+      case 9:
+        y += 1;
+        break;
+      case 5:
+        x += 1;
+        break;
+      case 10:
+        y += 1;
+        break;
+    }
+    vertices.push([x, y]);
+    visited[y * width + x] = true;
+  } while (x !== startX || y !== startY);
+
+  return vertices;
+}
+
 export function calculateAspectRatio(width: number, height: number) {
   function gcd(a: number, b: number) {
     while (b) {
@@ -103,206 +162,83 @@ export function calculateAspectRatio(width: number, height: number) {
   return { aspectWidth, aspectHeight };
 }
 
-export function transformVertices(
+export function fillEmptySpaces(
   vertices: VertexType[],
-  source: Dimensions,
-  target: Dimensions,
-  numVertices: number
+  maxDistance: number = 1
 ) {
-  // Calculate the bounding box of the original vertices
-  const minX = 1;
-  const minY = 1;
+  let filledVertices = [];
 
-  const originalWidth = source.width;
-  const originalHeight = source.height;
+  // Iterate through existing vertices
+  for (let i = 0; i < vertices.length; i++) {
+    filledVertices.push(vertices[i]); // Add existing vertex
 
-  const targetWidth = target.width;
-  const targetHeight = target.height;
+    // Calculate distance to the next vertex (looping around)
+    let nextIndex = (i + 1) % vertices.length;
+    let dx = vertices[nextIndex].x - vertices[i].x;
+    let dy = vertices[nextIndex].y - vertices[i].y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
 
-  // Calculate scaling factors
-  const scaleX = targetWidth / originalWidth;
-  const scaleY = targetHeight / originalHeight;
-  const scale = Math.min(scaleX, scaleY);
+    // Calculate how many vertices to interpolate
+    let numVertices = Math.ceil(distance / maxDistance);
 
-  // Scale and translate vertices to fit within target dimensions
-  const scaledVertices = vertices.map((vertex) => ({
-    x: Math.round((vertex.x - minX) * scale),
-    y: Math.round((vertex.y - minY) * scale),
-  }));
-
-  // Interpolate vertices to match the desired number of vertices
-  function interpolateVertices(vertices: VertexType[], numVertices: number) {
-    const result = [];
-    const totalLength = vertices.reduce((acc, vertex, i) => {
-      if (i === 0) return acc;
-      return (
-        acc +
-        Math.hypot(
-          vertices[i].x - vertices[i - 1].x,
-          vertices[i].y - vertices[i - 1].y
-        )
-      );
-    }, 0);
-    const segmentLength = totalLength / numVertices;
-
-    let currentSegment = 0;
-    let aLength = 0;
-    for (let i = 0; i < numVertices; i++) {
-      while (
-        aLength +
-          Math.hypot(
-            vertices[currentSegment + 1].x - vertices[currentSegment].x,
-            vertices[currentSegment + 1].y - vertices[currentSegment].y
-          ) <
-        segmentLength * i
-      ) {
-        aLength += Math.hypot(
-          vertices[currentSegment + 1].x - vertices[currentSegment].x,
-          vertices[currentSegment + 1].y - vertices[currentSegment].y
-        );
-        currentSegment++;
+    if (numVertices > 1) {
+      // Interpolate vertices
+      let stepX = dx / numVertices;
+      let stepY = dy / numVertices;
+      for (let j = 1; j < numVertices; j++) {
+        let interpolatedX = vertices[i].x + j * stepX;
+        let interpolatedY = vertices[i].y + j * stepY;
+        filledVertices.push({
+          x: Math.round(interpolatedX),
+          y: Math.round(interpolatedY),
+        });
       }
-      const t =
-        (segmentLength * i - aLength) /
-        Math.hypot(
-          vertices[currentSegment + 1].x - vertices[currentSegment].x,
-          vertices[currentSegment + 1].y - vertices[currentSegment].y
-        );
-      result.push({
-        x: Math.round(
-          vertices[currentSegment].x * (1 - t) +
-            vertices[currentSegment + 1].x * t
-        ),
-        y: Math.round(
-          vertices[currentSegment].y * (1 - t) +
-            vertices[currentSegment + 1].y * t
-        ),
-      });
     }
-    return result;
   }
 
-  return interpolateVertices(scaledVertices, numVertices);
+  return filledVertices;
 }
 
-export function scaleVertices(
-  vertices: VertexType[],
-  targetWidth: number,
-  targetHeight: number,
-  targetCount: number
-) {
-  // Step 1: Normalize the vertices to fit within the targetWidth and targetHeight
-  const minX = Math.min(...vertices.map((v) => v.x));
-  const minY = Math.min(...vertices.map((v) => v.y));
-  const maxX = Math.max(...vertices.map((v) => v.x));
-  const maxY = Math.max(...vertices.map((v) => v.y));
+export function traceImage(
+  image: HTMLImageElement,
+  canvas: HTMLCanvasElement
+): VertexType[] {
+  const cv = window.cv;
+  const ctx = canvas.getContext('2d');
 
-  const scaleX = targetWidth / (maxX - minX);
-  const scaleY = targetHeight / (maxY - minY);
-  const scale = Math.min(scaleX, scaleY);
-
-  const normalizedVertices = vertices.map((v) => ({
-    x: Math.round((v.x - minX) * scale),
-    y: Math.round((v.y - minY) * scale),
-  }));
-
-  // Step 2: Reduce the number of vertices to the targetCount
-  const totalLength = calculatePerimeter(normalizedVertices);
-  const segmentLength = totalLength / targetCount;
-
-  const scaledVertices = [];
-  let currentIndex = 0;
-  let accumulatedLength = 0;
-
-  scaledVertices.push(normalizedVertices[0]);
-
-  while (scaledVertices.length < targetCount) {
-    let nextIndex = (currentIndex + 1) % normalizedVertices.length;
-    let dx =
-      normalizedVertices[nextIndex].x - normalizedVertices[currentIndex].x;
-    let dy =
-      normalizedVertices[nextIndex].y - normalizedVertices[currentIndex].y;
-    let distance = Math.sqrt(dx * dx + dy * dy);
-
-    while (accumulatedLength + distance < segmentLength) {
-      accumulatedLength += distance;
-      currentIndex = nextIndex;
-      nextIndex = (currentIndex + 1) % normalizedVertices.length;
-      dx = normalizedVertices[nextIndex].x - normalizedVertices[currentIndex].x;
-      dy = normalizedVertices[nextIndex].y - normalizedVertices[currentIndex].y;
-      distance = Math.sqrt(dx * dx + dy * dy);
-    }
-
-    const remainingLength = segmentLength - accumulatedLength;
-    const ratio = remainingLength / distance;
-    const x = Math.round(normalizedVertices[currentIndex].x + ratio * dx);
-    const y = Math.round(normalizedVertices[currentIndex].y + ratio * dy);
-
-    scaledVertices.push({ x, y });
-    accumulatedLength = 0;
-    currentIndex = nextIndex;
+  if (!ctx) {
+    return [];
   }
 
-  return scaledVertices;
-}
+  const src = cv.imread(canvas);
+  const gray = new cv.Mat();
+  const edges = new cv.Mat();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.Canny(gray, edges, 100, 200, 3, false);
 
-export function scaleVertices2(
-  vertices: VertexType[],
-  targetWidth: number,
-  targetHeight: number,
-  targetCount: number
-) {
-  // Step 1: Normalize the vertices to fit within the targetWidth and targetHeight
-  const minX = Math.min(...vertices.map((v) => v.x));
-  const minY = Math.min(...vertices.map((v) => v.y));
-  const maxX = Math.max(...vertices.map((v) => v.x));
-  const maxY = Math.max(...vertices.map((v) => v.y));
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
 
-  const scaleX = targetWidth / (maxX - minX);
-  const scaleY = targetHeight / (maxY - minY);
-  const scale = Math.min(scaleX, scaleY);
+  cv.findContours(
+    edges,
+    contours,
+    hierarchy,
+    cv.RETR_TREE,
+    cv.CHAIN_APPROX_SIMPLE
+  );
 
-  const nV = vertices.map((v) => ({
-    x: (v.x - minX) * scale,
-    y: (v.y - minY) * scale,
-  }));
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height); // Redraw resized image
 
-  // Step 2: Reduce the number of vertices to the targetCount
-  const totalLength = calculatePerimeter(nV);
-  const segmentLength = totalLength / targetCount;
-
-  const scaledVertices = [];
-  let currentIndex = 0;
-  let aLength = 0;
-
-  scaledVertices.push(nV[0]);
-
-  while (scaledVertices.length < targetCount) {
-    let nextIndex = (currentIndex + 1) % nV.length;
-    let dx = nV[nextIndex].x - nV[currentIndex].x;
-    let dy = nV[nextIndex].y - nV[currentIndex].y;
-    let distance = Math.sqrt(dx * dx + dy * dy);
-
-    while (aLength + distance < segmentLength) {
-      aLength += distance;
-      currentIndex = nextIndex;
-      nextIndex = (currentIndex + 1) % nV.length;
-      dx = nV[nextIndex].x - nV[currentIndex].x;
-      dy = nV[nextIndex].y - nV[currentIndex].y;
-      distance = Math.sqrt(dx * dx + dy * dy);
+  let allVertices: VertexType[] = [];
+  for (let i = 0; i < contours.size(); ++i) {
+    const contour = contours.get(i);
+    for (let j = 0; j < contour.data32S.length; j += 2) {
+      allVertices.push({ x: contour.data32S[j], y: contour.data32S[j + 1] });
     }
-
-    const remainingLength = segmentLength - aLength;
-    const ratio = remainingLength / distance;
-    const x = nV[currentIndex].x + ratio * dx;
-    const y = nV[currentIndex].y + ratio * dy;
-
-    scaledVertices.push({ x, y });
-    aLength = 0;
-    currentIndex = nextIndex;
   }
 
-  return scaledVertices;
+  return fillEmptySpaces(allVertices);
 }
 
 export function calculatePerimeter(vertices: VertexType[]) {
@@ -316,4 +252,75 @@ export function calculatePerimeter(vertices: VertexType[]) {
   const dy = vertices[0].y - vertices[vertices.length - 1].y;
   totalLength += Math.sqrt(dx * dx + dy * dy);
   return totalLength;
+}
+
+export function scaleVertices4(
+  vertices: VertexType[],
+  widthX: number,
+  heightX: number,
+  widthY: number,
+  heightY: number,
+  numberOfVertices: number
+): VertexType[] {
+  // Calculate scaling factors
+  const scaleX = widthY / widthX;
+  const scaleY = heightY / heightX;
+
+  // Scale and transform vertices
+  const transformedVertices = vertices.map((vertex) => ({
+    x: Math.round(vertex.x * scaleX),
+    y: Math.round(vertex.y * scaleY),
+  }));
+
+  // Ensure there are numberOfVertices unique vertices
+  if (transformedVertices.length > numberOfVertices) {
+    // Reduce vertices to numberOfVertices by deduplicating
+    const uniqueVertices = Array.from(
+      new Set(transformedVertices.map((v) => `${v.x},${v.y}`))
+    ).map((coord) => {
+      const [x, y] = coord.split(',').map(Number);
+      return { x, y };
+    });
+
+    return uniqueVertices;
+  } else {
+    // Pad with duplicates if needed
+    const paddedVertices = [...transformedVertices];
+    while (paddedVertices.length < numberOfVertices) {
+      paddedVertices.push(
+        transformedVertices[paddedVertices.length % transformedVertices.length]
+      );
+    }
+    return paddedVertices;
+  }
+
+  // return sortVerticesClockwise(resampledVertices);
+}
+
+function interpolate(vertices: VertexType[], distance: number) {
+  let length = 0;
+  for (let i = 1; i < vertices.length; i++) {
+    length += Math.sqrt(
+      Math.pow(vertices[i].x - vertices[i - 1].x, 2) +
+        Math.pow(vertices[i].y - vertices[i - 1].y, 2)
+    );
+  }
+
+  let accumulatedLength = 0;
+  for (let i = 1; i < vertices.length; i++) {
+    let segmentLength = Math.sqrt(
+      Math.pow(vertices[i].x - vertices[i - 1].x, 2) +
+        Math.pow(vertices[i].y - vertices[i - 1].y, 2)
+    );
+    if (accumulatedLength + segmentLength >= distance) {
+      let ratio = (distance - accumulatedLength) / segmentLength;
+      return {
+        x: vertices[i - 1].x + ratio * (vertices[i].x - vertices[i - 1].x),
+        y: vertices[i - 1].y + ratio * (vertices[i].y - vertices[i - 1].y),
+      };
+    }
+    accumulatedLength += segmentLength;
+  }
+
+  return vertices[vertices.length - 1];
 }

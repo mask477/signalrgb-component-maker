@@ -1,4 +1,12 @@
-import React, { ChangeEvent, useCallback, useEffect, useRef } from 'react';
+import React, {
+  ChangeEvent,
+  Ref,
+  RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Alert, Button, ButtonGroup } from 'react-bootstrap';
 import { Shape, useComponent } from '../context/ComponentContext';
 import GridRowItem from './GridRowItem';
@@ -16,9 +24,10 @@ import ThresholdInput from './ThresholdInput';
 import GridControlButton from './GridControlButton';
 import Field from './Field';
 import {
-  scaleVertices,
+  DimensionsType,
+  scaleVertices4,
   sortVerticesClockwise,
-  transformVertices,
+  traceImage,
   VertexType,
 } from '../utils/Functions';
 
@@ -35,9 +44,12 @@ export default function Grid() {
   } = useComponent();
   const { Width, Height, LedCount } = component;
 
+  const [allVertices, setAllVertices] = useState<VertexType[]>([]);
+  const [scaledVertices, setScaledVertices] = useState<VertexType[]>([]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const canvas2Ref = useRef<HTMLCanvasElement>(null);
-  const canvas3Ref = useRef<HTMLCanvasElement>(null);
+  const verticesCanvasRef = useRef<HTMLCanvasElement>(null);
+  const resultCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const drawWidth = Width * 10;
@@ -50,11 +62,11 @@ export default function Grid() {
 
       ctx?.drawImage(shapeImage, 0, 0, drawWidth, drawHeight);
     }
-    if (canvas2Ref.current) {
-      canvas2Ref.current.width = drawWidth;
-      canvas2Ref.current.height = drawHeight;
+    if (verticesCanvasRef.current) {
+      verticesCanvasRef.current.width = drawWidth;
+      verticesCanvasRef.current.height = drawHeight;
     }
-  }, [shapeImage, canvasRef, canvas2Ref, Width, Height]);
+  }, [shapeImage, canvasRef, Width, Height]);
 
   const onClickActionHandler = (action: string) => gridAction(action);
 
@@ -79,101 +91,60 @@ export default function Grid() {
         }
       }
     },
-    [canvasRef, canvas2Ref]
+    [setShapeImage]
   );
 
-  const onClickTrace = useCallback(() => {
-    if (!canvasRef || !canvasRef.current) {
+  useEffect(() => {
+    console.log('allVertices.length:', allVertices.length);
+
+    if (allVertices.length && canvasRef.current) {
+      const canvas = canvasRef.current;
+
+      setScaledVertices(
+        scaleVertices4(
+          allVertices,
+          canvas.width,
+          canvas.height,
+          Width,
+          Height,
+          LedCount
+        )
+      );
+      drawOnCanvas(verticesCanvasRef, allVertices);
+    }
+  }, [Height, LedCount, Width, allVertices]);
+
+  useEffect(() => {
+    console.log('scaledVertices:', scaledVertices);
+
+    if (scaledVertices.length) {
+      drawOnCanvas(resultCanvasRef, scaledVertices, 10);
+      mapVertices(scaledVertices);
+    }
+  }, [scaledVertices]);
+
+  const drawOnCanvas = (
+    canvasRef: RefObject<HTMLCanvasElement>,
+    vertices: VertexType[],
+    ledSize: number = 1
+  ) => {
+    if (!canvasRef) {
       return;
     }
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
 
-    if (!ctx) {
+    if (!canvas) {
       return;
     }
 
-    const image = shapeImage;
-
-    const cv = window.cv;
-
-    const src = cv.imread(canvas);
-    const gray = new cv.Mat();
-    const edges = new cv.Mat();
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-    cv.Canny(gray, edges, 100, 200, 3, false);
-
-    const contours = new cv.MatVector();
-    const hierarchy = new cv.Mat();
-    cv.findContours(
-      edges,
-      contours,
-      hierarchy,
-      cv.RETR_EXTERNAL,
-      cv.CHAIN_APPROX_SIMPLE
-    );
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height); // Redraw resized image
-
-    let allVertices = [];
-    for (let i = 0; i < contours.size(); ++i) {
-      const contour = contours.get(i);
-      for (let j = 0; j < contour.data32S.length; j += 2) {
-        allVertices.push({ x: contour.data32S[j], y: contour.data32S[j + 1] });
-      }
-    }
-
-    allVertices = sortVerticesClockwise(allVertices);
-
-    let equallyDistantVertices = scaleVertices(
-      allVertices,
-      Width,
-      Height,
-      LedCount
-    );
-
-    // let equallyDistantVertices = transformVertices(
-    //   allVertices,
-    //   {
-    //     width: canvasRef.current.width,
-    //     height: canvasRef.current.height,
-    //   },
-    //   {
-    //     width: Width,
-    //     height: Height,
-    //   },
-    //   LedCount
-    // );
-
-    drawCanvas2(allVertices);
-    drawCanvas3(equallyDistantVertices);
-
-    console.log('equallyDistantVertices:', equallyDistantVertices);
-
-    mapVertices(equallyDistantVertices);
-
-    src.delete();
-    gray.delete();
-    edges.delete();
-    contours.delete();
-    hierarchy.delete();
-  }, [Height, LedCount, Width, shapeImage]);
-
-  const drawCanvas2 = (vertices: VertexType[]) => {
-    const canvas2 = canvas2Ref.current;
-
-    if (!canvas2) {
-      return;
-    }
-
-    const context = canvas2.getContext('2d');
+    const context = canvas.getContext('2d');
 
     if (!context) {
       return;
     }
-    context.clearRect(0, 0, canvas2.width, canvas2.height);
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
     context.beginPath();
     context.moveTo(vertices[0].x, vertices[0].y);
@@ -192,42 +163,20 @@ export default function Grid() {
     }
   };
 
-  const drawCanvas3 = (vertices: VertexType[]) => {
-    const canvas3 = canvas3Ref.current;
-
-    if (!canvas3) {
-      return;
-    }
-    const context = canvas3.getContext('2d');
-
-    if (!context) {
+  const onClickTrace = useCallback(() => {
+    if (!canvasRef || !canvasRef.current) {
       return;
     }
 
-    context.clearRect(0, 0, canvas3.width, canvas3.height);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
 
-    for (let y = 0; y < Height; y++) {
-      for (let x = 0; x < Width; x++) {
-        const drawAtX = 10 * x;
-        const drawAtY = 10 * y;
-
-        const shouldFill = vertices.find(
-          (vertex) => Math.floor(vertex.x) === x && Math.floor(vertex.y) === y
-        );
-
-        context.beginPath();
-        if (shouldFill) {
-          context.fillStyle = 'red';
-          context.fillRect(drawAtX, drawAtY, 10, 10);
-        } else {
-          context.rect(drawAtX, drawAtY, 10, 10);
-        }
-
-        context.stroke();
-        context.closePath();
-      }
+    if (!ctx) {
+      return;
     }
-  };
+
+    setAllVertices(traceImage(shapeImage, canvas));
+  }, [setAllVertices, shapeImage]);
 
   return (
     <>
@@ -320,14 +269,14 @@ export default function Grid() {
                       height="200"
                     ></canvas>
                     <canvas
-                      ref={canvas2Ref}
+                      ref={verticesCanvasRef}
                       className="border"
                       width="200"
                       height="200"
                     ></canvas>
 
                     <canvas
-                      ref={canvas3Ref}
+                      ref={resultCanvasRef}
                       className="border"
                       width="200"
                       height="200"
