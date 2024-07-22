@@ -89,83 +89,7 @@ export function sortVerticesClockwise(vertices: VertexType[]) {
   });
 }
 
-export function marchSquare(
-  startX: number,
-  startY: number,
-  imageData: ImageData,
-  threshold: number,
-  visited: boolean[]
-) {
-  const { width, data } = imageData;
-  const vertices = [];
-  let x = startX,
-    y = startY;
-
-  do {
-    const index = (y * width + x) * 4;
-    const v0: any = data[index] > threshold;
-    const v1: any = data[index + 4] > threshold;
-    const v2: any = data[index + width * 4] > threshold;
-    const v3: any = data[index + (width + 1) * 4] > threshold;
-
-    let caseIndex = (v0 << 3) | (v1 << 2) | (v2 << 1) | v3;
-    switch (caseIndex) {
-      case 1:
-      case 14:
-        x += 1; // Move right
-        break;
-      case 2:
-      case 13:
-        y += 1; // Move down
-        break;
-      case 4:
-      case 11:
-        x -= 1; // Move left
-        break;
-      case 8:
-      case 7:
-        y -= 1; // Move up
-        break;
-      case 3:
-      case 12:
-        x += 1;
-        break;
-      case 6:
-      case 9:
-        y += 1;
-        break;
-      case 5:
-        x += 1;
-        break;
-      case 10:
-        y += 1;
-        break;
-    }
-    vertices.push([x, y]);
-    visited[y * width + x] = true;
-  } while (x !== startX || y !== startY);
-
-  return vertices;
-}
-
-export function calculateAspectRatio(width: number, height: number) {
-  function gcd(a: number, b: number) {
-    while (b) {
-      [a, b] = [b, a % b];
-    }
-    return a;
-  }
-
-  const gcdValue = gcd(width, height);
-  const aspectWidth = width / gcdValue;
-  const aspectHeight = height / gcdValue;
-  return { aspectWidth, aspectHeight };
-}
-
-export function fillEmptySpaces(
-  vertices: VertexType[],
-  maxDistance: number = 1
-) {
+function fillEmptySpaces(vertices: VertexType[], maxDistance: number = 1) {
   let filledVertices = [];
 
   // Iterate through existing vertices
@@ -295,32 +219,4 @@ export function scaleVertices4(
   }
 
   // return sortVerticesClockwise(resampledVertices);
-}
-
-function interpolate(vertices: VertexType[], distance: number) {
-  let length = 0;
-  for (let i = 1; i < vertices.length; i++) {
-    length += Math.sqrt(
-      Math.pow(vertices[i].x - vertices[i - 1].x, 2) +
-        Math.pow(vertices[i].y - vertices[i - 1].y, 2)
-    );
-  }
-
-  let accumulatedLength = 0;
-  for (let i = 1; i < vertices.length; i++) {
-    let segmentLength = Math.sqrt(
-      Math.pow(vertices[i].x - vertices[i - 1].x, 2) +
-        Math.pow(vertices[i].y - vertices[i - 1].y, 2)
-    );
-    if (accumulatedLength + segmentLength >= distance) {
-      let ratio = (distance - accumulatedLength) / segmentLength;
-      return {
-        x: vertices[i - 1].x + ratio * (vertices[i].x - vertices[i - 1].x),
-        y: vertices[i - 1].y + ratio * (vertices[i].y - vertices[i - 1].y),
-      };
-    }
-    accumulatedLength += segmentLength;
-  }
-
-  return vertices[vertices.length - 1];
 }

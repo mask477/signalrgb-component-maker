@@ -95,8 +95,6 @@ export default function Grid() {
   );
 
   useEffect(() => {
-    console.log('allVertices.length:', allVertices.length);
-
     if (allVertices.length && canvasRef.current) {
       const canvas = canvasRef.current;
 
@@ -115,8 +113,6 @@ export default function Grid() {
   }, [Height, LedCount, Width, allVertices]);
 
   useEffect(() => {
-    console.log('scaledVertices:', scaledVertices);
-
     if (scaledVertices.length) {
       drawOnCanvas(resultCanvasRef, scaledVertices, 10);
       mapVertices(scaledVertices);
@@ -146,17 +142,14 @@ export default function Grid() {
 
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    context.beginPath();
-    context.moveTo(vertices[0].x, vertices[0].y);
-    for (let i = 1; i < vertices.length; i++) {
-      context.lineTo(vertices[i].x, vertices[i].y);
-    }
-    context.stroke();
-    context.closePath();
-
     for (let i = 0; i < vertices.length; i++) {
       context.beginPath();
-      context.arc(vertices[i].x, vertices[i].y, 2, 0, 2 * Math.PI);
+      context.fillRect(
+        vertices[i].x * ledSize,
+        vertices[i].y * ledSize,
+        ledSize,
+        ledSize
+      );
       context.fillStyle = 'red';
       context.fill();
       context.closePath();
